@@ -1,0 +1,5 @@
+Official release page:
+https://unity-chan-com.azurewebsites.net/download/releaseNote.php?id=UnityChan
+
+Official license guideline:
+https://unity3d.jp/unity-chan_contents/guideline.php?lang=en

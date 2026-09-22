@@ -1,0 +1,12 @@
+User-provided local source at import time:
+C:\Users\quang_vcs\Downloads\7066744897306419891.vrm
+
+The VRM did not embed an original public model-page URL, and an exact filename/ID
+web search did not recover one. The embedded author is "Michan" and the model name
+is "Michan".
+
+Embedded license URL:
+https://vrm.dev/licenses/1.0/
+
+Official English license PDF:
+https://vrm.dev/licenses/1.0/pdf/en.pdf

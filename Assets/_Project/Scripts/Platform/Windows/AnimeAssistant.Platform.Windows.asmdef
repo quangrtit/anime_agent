@@ -1,0 +1,21 @@
+{
+  "name": "AnimeAssistant.Platform.Windows",
+  "rootNamespace": "AnimeAssistant.Platform.Windows",
+  "references": [
+    "AnimeAssistant.Platform",
+    "AnimeAssistant.Presentation"
+  ],
+  "includePlatforms": [
+    "Editor",
+    "WindowsStandalone32",
+    "WindowsStandalone64"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

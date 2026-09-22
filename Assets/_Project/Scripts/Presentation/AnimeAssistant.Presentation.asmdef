@@ -1,0 +1,21 @@
+{
+  "name": "AnimeAssistant.Presentation",
+  "rootNamespace": "AnimeAssistant.Presentation",
+  "references": [
+    "AnimeAssistant.Domain",
+    "Unity.InputSystem",
+    "VRM10",
+    "UniGLTF",
+    "UniGLTF.Utils",
+    "UniHumanoid"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

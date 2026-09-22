@@ -1,0 +1,5 @@
+large_castle_door_2k.gltf
+large_castle_door.bin
+textures/large_castle_door_diff_2k.jpg
+textures/large_castle_door_nor_gl_2k.jpg
+textures/large_castle_door_arm_2k.jpg

@@ -1,0 +1,2 @@
+AnimationLibrary_Godot_Standard.gltf
+AnimationLibrary_Godot_Standard.bin

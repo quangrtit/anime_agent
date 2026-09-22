@@ -1,0 +1,22 @@
+UNITY-CHAN LICENSE
+
+Asset: Unity-Chan 3D Model Data v1.4.0
+Licensor: Unity Technologies Japan
+
+This asset is used under the Unity-Chan License Terms. The downloaded v1.4.0
+package includes the English UCL 2.02 terms, summary, and indication documents;
+those unmodified PDFs are stored beside this file. The official guideline says
+the latest terms take precedence. As of retrieval on 2026-09-22, the current
+terms are Unity-Chan License 3.0:
+
+https://unity3d.jp/unity-chan_contents/license.php?lang=en
+https://unity3d.jp/unity-chan_contents/guideline.php?lang=en
+
+Required notice:
+
+© Unity Technologies Japan/UCL
+
+Do not imply that this application is an official Unity Technologies Japan
+product. Redistributions must preserve the notice and the license-related files.
+The current license also prohibits using Unity-Chan as training data or input for
+AI image generation.

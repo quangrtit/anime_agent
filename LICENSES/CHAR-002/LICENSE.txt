@@ -1,0 +1,24 @@
+VRM PUBLIC LICENSE 1.0
+
+Official license text:
+https://vrm.dev/en/licenses/1.0/
+Official English PDF (stored alongside this file as LICENSE.pdf):
+https://vrm.dev/licenses/1.0/pdf/en.pdf
+
+The License Settings embedded in this exact VRM file are part of the license and
+state:
+
+- model name: Michan
+- author/licensor: Michan
+- avatarPermission: everyone
+- commercialUsage: corporation
+- creditNotation: unnecessary
+- allowRedistribution: true
+- modification: allowModificationRedistribution
+- allowExcessivelyViolentUsage: true
+- allowExcessivelySexualUsage: true
+- allowPoliticalOrReligiousUsage: true
+- allowAntisocialOrHateUsage: true
+
+The project must not imply endorsement by the licensor and must preserve the VRM
+license settings when redistributing the original or adapted VRM data.

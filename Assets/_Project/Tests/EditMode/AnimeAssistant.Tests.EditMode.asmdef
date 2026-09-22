@@ -1,0 +1,25 @@
+{
+  "name": "AnimeAssistant.Tests.EditMode",
+  "rootNamespace": "AnimeAssistant.Tests.EditMode",
+  "references": [
+    "AnimeAssistant.Domain",
+    "AnimeAssistant.Platform"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
+

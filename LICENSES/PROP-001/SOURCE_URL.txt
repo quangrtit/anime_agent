@@ -1,0 +1,11 @@
+Asset page:
+https://polyhaven.com/a/large_castle_door
+
+Asset metadata API:
+https://api.polyhaven.com/info/large_castle_door
+
+Exact 2K glTF file manifest API:
+https://api.polyhaven.com/files/large_castle_door
+
+License:
+https://polyhaven.com/license

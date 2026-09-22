@@ -1,0 +1,14 @@
+{
+  "displayScale": 0.6667,
+  "doorRightMarginCm": 3.5,
+  "doorBottomMarginCm": 2.0,
+  "avatarStartViewportX": 0.72,
+  "roamMinViewportX": 0.06,
+  "roamMaxViewportX": 0.86,
+  "roamNearDepth": -0.35,
+  "roamFarDepth": 4.8,
+  "walkWorldUnitsPerSecond": 0.72,
+  "runWorldUnitsPerSecond": 1.18,
+  "doorCollapseSeconds": 0.72,
+  "recallButtonScale": 0.32
+}

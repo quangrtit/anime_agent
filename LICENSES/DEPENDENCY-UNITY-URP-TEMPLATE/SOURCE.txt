@@ -1,0 +1,7 @@
+Package: com.unity.template.urp-blank
+Version: 17.0.9
+URL: https://download.packages.unity.com/com.unity.template.urp-blank/-/com.unity.template.urp-blank-17.0.9.tgz
+Downloaded: 2026-09-21
+Archive SHA-256: 6C47D699943FF26D85FF3F18B81E8DC01C6F1C470E171441530210E8E0072326
+LICENSE.md SHA-256: 94C376B80089C431EEB674518C5A10DFC67E4B93171C059C7736F50BB90EE146
+

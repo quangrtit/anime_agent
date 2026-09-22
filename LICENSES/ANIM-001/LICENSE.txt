@@ -1,0 +1,10 @@
+CC0 1.0 Universal
+
+Universal Animation Library (Standard FREE version)
+Creator: Quaternius
+
+The creator's official asset page identifies this pack as CC0 and free for
+personal, educational, and commercial projects:
+https://quaternius.com/packs/universalanimationlibrary.html
+
+Full CC0 legal text is preserved in CC0-1.0.txt in this directory.

@@ -1,0 +1,11 @@
+Asset page (VRM 1.0 conversion by Coatie):
+https://hub.vroid.com/en/characters/4593660874193246717/models/7956589129305596116
+
+Official original model and CC0 notice (pixiv Inc. / VRoid Project):
+https://vroid.pixiv.help/hc/en-us/articles/360013482714-Sendagaya-Shino
+
+Pinned redistribution source used for this exact byte stream:
+https://raw.githubusercontent.com/yw0nam/YUI/02368b1288c05ceecbbe782832788250304a73a4/resources/vrms/Sendagaya_Shino.vrm
+
+Upstream provenance record:
+https://github.com/yw0nam/YUI/blob/02368b1288c05ceecbbe782832788250304a73a4/resources/vrms/Sendagaya_Shino.PROVENANCE.md

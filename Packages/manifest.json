@@ -1,0 +1,13 @@
+{
+  "dependencies": {
+    "com.unity.ide.visualstudio": "2.0.22",
+    "com.unity.inputsystem": "1.8.1",
+    "com.unity.render-pipelines.universal": "17.0.1",
+    "com.unity.test-framework": "1.4.6",
+    "com.unity.timeline": "1.8.6",
+    "com.unity.ugui": "2.0.0",
+    "com.vrmc.gltf": "file:../.packages/upm/UniVRM-v0.131.2/Packages/UniGLTF",
+    "com.vrmc.univrm": "file:../.packages/upm/UniVRM-v0.131.2/Packages/VRM",
+    "com.vrmc.vrm": "file:../.packages/upm/UniVRM-v0.131.2/Packages/VRM10"
+  }
+}

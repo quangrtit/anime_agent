@@ -1,0 +1,22 @@
+VRM PUBLIC LICENSE 1.0
+
+Official license text:
+https://vrm.dev/en/licenses/1.0/
+
+The license settings embedded in this exact VRM file state:
+
+- model name: FREE MODEL ロック系赤髪グラデJK
+- author/licensor: 水銀メイド (MercuryMaid)
+- copyright: ©2026MercuryMaid
+- avatarPermission: everyone
+- commercialUsage: corporation
+- creditNotation: unnecessary
+- allowRedistribution: true
+- modification: allowModificationRedistribution
+- allowExcessivelyViolentUsage: true
+- allowExcessivelySexualUsage: true
+- allowPoliticalOrReligiousUsage: true
+- allowAntisocialOrHateUsage: true
+
+The project must not imply creator endorsement. Preserve the embedded VRM
+license settings when redistributing the original or modified avatar data.

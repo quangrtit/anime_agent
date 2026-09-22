@@ -1,0 +1,55 @@
+# Unity generated content
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]in/
+/[Bb]uild/
+/[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Local dependency/tool caches restored by Tools/Dependencies
+.downloads/
+.packages/
+.tools/
+
+# Files copied from the stock URP template but not used by this project
+Assets/TutorialInfo/
+Assets/TutorialInfo.meta
+Assets/Readme.asset
+Assets/Readme.asset.meta
+
+# IDE and generated project files
+.vs/
+.vscode/
+.idea/
+*.csproj
+!Tools/DomainVerification/DomainSmoke.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity crash/build artifacts
+sysinfo.txt
+*.apk
+*.aab
+*.app
+*.unitypackage
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Blender rolling backup; the authored .blend source itself is tracked through LFS.
+*.blend1

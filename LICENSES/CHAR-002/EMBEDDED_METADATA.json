@@ -1,0 +1,14 @@
+{
+  "name": "Michan",
+  "authors": ["Michan"],
+  "licenseUrl": "https://vrm.dev/licenses/1.0/",
+  "avatarPermission": "everyone",
+  "commercialUsage": "corporation",
+  "creditNotation": "unnecessary",
+  "allowRedistribution": true,
+  "modification": "allowModificationRedistribution",
+  "allowExcessivelyViolentUsage": true,
+  "allowExcessivelySexualUsage": true,
+  "allowPoliticalOrReligiousUsage": true,
+  "allowAntisocialOrHateUsage": true
+}

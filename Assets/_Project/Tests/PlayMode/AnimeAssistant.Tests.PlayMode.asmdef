@@ -1,0 +1,23 @@
+{
+  "name": "AnimeAssistant.Tests.PlayMode",
+  "rootNamespace": "AnimeAssistant.Tests.PlayMode",
+  "references": [
+    "AnimeAssistant.Domain",
+    "AnimeAssistant.Presentation",
+    "Unity.InputSystem"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [
+    "UNITY_INCLUDE_TESTS"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
