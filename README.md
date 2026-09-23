@@ -48,3 +48,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Tools\Build\Build-SingleEx
 File ZIP để đưa lên Release được tạo tại:
 
 `Builds/AnimeAssistant-Windows-x64-Portable.zip`
+
+## Voice credit
+
+Japanese character chatter: `VOICEVOX:猫使アル`.

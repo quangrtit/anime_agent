@@ -80,6 +80,7 @@ namespace AnimeAssistant.Tests.PlayMode
             Assert.That(avatar.GetComponent<HumanoidAvatarMotion>(), Is.Not.Null);
             Assert.That(Object.FindFirstObjectByType<SummonVfxController>(), Is.Not.Null);
             Assert.That(HumanoidAvatarMotion.BehaviourTemplateCount, Is.EqualTo(7));
+            Assert.That(DesktopAudioController.ChatterLineCount, Is.EqualTo(8));
 
             for (var cycle = 0; cycle < 100; cycle++)
             {

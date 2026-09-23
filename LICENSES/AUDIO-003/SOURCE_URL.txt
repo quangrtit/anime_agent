@@ -1,0 +1,3 @@
+https://voicevox.hiroshiba.jp/product/nekotsuka_aru/
+https://api.tts.quest/v3/voicevox/synthesis
+https://github.com/ts-klassen/ttsQuestV3Voicevox

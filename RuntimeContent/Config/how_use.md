@@ -14,6 +14,9 @@ Sửa `desktop_layout.json`, lưu file rồi tắt và mở lại chương trìn
 - `chatterEnabled`: bật/tắt lời nói ngẫu nhiên khi nhân vật ở ngoài.
 - `chatterMinSeconds`, `chatterMaxSeconds`: khoảng nghỉ ngẫu nhiên giữa hai câu thoại.
 - `chatterVolume`: âm lượng riêng của lời nói ngẫu nhiên, từ `0` đến `1`.
+- `speechBubbleEnabled`: bật/tắt bong bóng thoại trên đầu nhân vật.
+- `speechBubbleScale`: tỷ lệ kích thước bong bóng thoại.
+- `speechTextCharactersPerSecond`: tốc độ chữ hiện dần trong bong bóng.
 
 Ví dụ đặt tâm cửa gần góc phải dưới:
 

@@ -31,9 +31,12 @@ $requiredPaths = @(
     'Assets/_Project/Resources/Audio/DesktopAssistant/button_press.ogg',
     'Assets/_Project/Resources/Audio/DesktopAssistant/door_open.ogg',
     'Assets/_Project/Resources/Audio/DesktopAssistant/voice_jump_1.wav',
+    'Assets/_Project/Resources/Audio/DesktopAssistant/voice_chatter_vi_1.mp3',
+    'Assets/_Project/Resources/Audio/DesktopAssistant/voice_chatter_jp_3.mp3',
     'Assets/_Project/Scripts/Presentation/DesktopAudioController.cs',
     'LICENSES/AUDIO-001/LICENSE.txt',
     'LICENSES/AUDIO-002/LICENSE.txt',
+    'LICENSES/AUDIO-003/LICENSE.txt',
     'Tools/Build/Build-SingleExe.ps1',
     'Tools/PortableLauncher/AnimeAssistant.PortableLauncher.csproj'
 )

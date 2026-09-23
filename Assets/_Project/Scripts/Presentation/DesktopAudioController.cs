@@ -11,6 +11,17 @@ namespace AnimeAssistant.Presentation
     public sealed class DesktopAudioController : MonoBehaviour
     {
         private const string AudioRoot = "Audio/DesktopAssistant/";
+        private static readonly string[] ChatterSubtitles =
+        {
+            "Này, hôm nay bạn đã cố gắng nhiều rồi.\nNghỉ một chút cũng không sao đâu.",
+            "Đi chậm không có nghĩa là đi lùi.\nChỉ cần đừng bỏ cuộc nhé!",
+            "Một ngày đẹp không cần hoàn hảo.\nChỉ cần có điều khiến bạn mỉm cười.",
+            "Nếu thấy mệt, hãy hít một hơi thật sâu.\nMình vẫn ở đây mà.",
+            "Hôm nay chúng ta cùng thong thả cố gắng nhé!",
+            "Dù chỉ là một bước nhỏ, tiến về phía trước đã rất tuyệt rồi.",
+            "♪ La la... Mong hôm nay cũng là một ngày thật đẹp! ♪",
+            "Khi bạn cười, mình cũng thấy vui.\nVậy nên... cười lên nhé?"
+        };
 
         private AudioSource interfaceSource;
         private AudioSource worldSource;
@@ -25,6 +36,15 @@ namespace AnimeAssistant.Presentation
         private int voiceIndex;
         private int lastChatterIndex = -1;
         private float chatterCountdown;
+        private string activeSubtitle;
+        private float subtitleStartedAt;
+        private float subtitleHideAt;
+        private float subtitleCharactersPerSecond;
+        private Font bubbleFont;
+        private Texture2D bubbleTexture;
+        private Texture2D bubbleTailTexture;
+        private GUIStyle bubbleFrameStyle;
+        private GUIStyle bubbleTextStyle;
 
         private AudioClip buttonPress;
         private AudioClip buttonElectric;
@@ -40,6 +60,7 @@ namespace AnimeAssistant.Presentation
         private AudioClip[] chatterVoices;
 
         public static DesktopAudioController Instance { get; private set; }
+        public static int ChatterLineCount => ChatterSubtitles.Length;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void CreateRuntimeAudio()
@@ -68,6 +89,7 @@ namespace AnimeAssistant.Presentation
             voiceSource = CreateSource("Avatar Voice");
             footstepSource = CreateSource("Footsteps");
             LoadClips();
+            CreateSpeechBubbleAssets();
             FindSceneActors();
         }
 
@@ -76,6 +98,18 @@ namespace AnimeAssistant.Presentation
             if (Instance == this)
             {
                 Instance = null;
+            }
+            if (bubbleTexture != null)
+            {
+                Destroy(bubbleTexture);
+            }
+            if (bubbleTailTexture != null)
+            {
+                Destroy(bubbleTailTexture);
+            }
+            if (bubbleFont != null)
+            {
+                Destroy(bubbleFont);
             }
         }
 
@@ -100,6 +134,10 @@ namespace AnimeAssistant.Presentation
                 chatterCountdown = state == SummonState.AvatarActive
                     ? Random.Range(6f, 10f)
                     : 0f;
+                if (state != SummonState.AvatarActive)
+                {
+                    activeSubtitle = null;
+                }
             }
 
             if (motion != null && motion.CurrentBehaviour != previousBehaviour)
@@ -230,6 +268,7 @@ namespace AnimeAssistant.Presentation
             }
             lastChatterIndex = index;
             Play(voiceSource, chatterVoices[index], config.chatterVolume, true);
+            ShowSpeechBubble(index, chatterVoices[index]);
             Debug.Log($"[DesktopAudio] Chatter '{chatterVoices[index].name}'.");
             chatterCountdown = Random.Range(config.chatterMinSeconds, config.chatterMaxSeconds);
         }
@@ -272,6 +311,230 @@ namespace AnimeAssistant.Presentation
                 "voice_chatter_vi_3", "voice_chatter_vi_4",
                 "voice_chatter_jp_1", "voice_chatter_jp_2",
                 "voice_chatter_jp_3", "voice_chatter_jp_4");
+        }
+
+        private void ShowSpeechBubble(int chatterIndex, AudioClip clip)
+        {
+            if (!DesktopExperienceConfig.Current.speechBubbleEnabled ||
+                chatterIndex < 0 || chatterIndex >= ChatterSubtitles.Length)
+            {
+                return;
+            }
+
+            activeSubtitle = ChatterSubtitles[chatterIndex];
+            subtitleStartedAt = Time.unscaledTime;
+            var revealSeconds = Mathf.Clamp(clip.length * 0.72f, 1.4f, 4.8f);
+            subtitleCharactersPerSecond = Mathf.Max(
+                DesktopExperienceConfig.Current.speechTextCharactersPerSecond,
+                activeSubtitle.Length / revealSeconds);
+            subtitleHideAt = subtitleStartedAt + Mathf.Max(clip.length + 1.25f, revealSeconds + 1f);
+        }
+
+        private void CreateSpeechBubbleAssets()
+        {
+            bubbleFont = Font.CreateDynamicFontFromOSFont(
+                new[] { "Yu Gothic UI", "Meiryo UI", "Segoe UI" }, 22);
+            bubbleTexture = CreateRoundedBubbleTexture(64, 64, 15, 3);
+            bubbleTailTexture = CreateBubbleTailTexture(40, 28, 3);
+            bubbleFrameStyle = new GUIStyle
+            {
+                normal = { background = bubbleTexture },
+                border = new RectOffset(18, 18, 18, 18),
+                padding = new RectOffset(22, 22, 15, 17)
+            };
+            bubbleTextStyle = new GUIStyle
+            {
+                font = bubbleFont,
+                fontSize = 20,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = true,
+                richText = false,
+                normal = { textColor = new Color(0.07f, 0.065f, 0.09f, 1f) }
+            };
+        }
+
+        private void OnGUI()
+        {
+            var config = DesktopExperienceConfig.Current;
+            if (!config.speechBubbleEnabled || string.IsNullOrEmpty(activeSubtitle) ||
+                Time.unscaledTime >= subtitleHideAt || controller == null ||
+                controller.State != SummonState.AvatarActive || motion == null ||
+                !TryGetAvatarHeadScreenPoint(out var head))
+            {
+                return;
+            }
+
+            GUI.depth = -1000;
+            var scale = config.speechBubbleScale;
+            var bubbleWidth = 360f * scale;
+            bubbleTextStyle.fontSize = Mathf.RoundToInt(20f * scale);
+            var fullContent = new GUIContent(activeSubtitle);
+            var textHeight = bubbleTextStyle.CalcHeight(fullContent, bubbleWidth - 44f * scale);
+            var bubbleHeight = Mathf.Clamp(textHeight + 34f * scale, 82f * scale, 156f * scale);
+            var preferredY = head.y - bubbleHeight - 30f * scale;
+            var bubbleAbove = preferredY >= 12f;
+            var bubbleY = bubbleAbove ? preferredY : head.y + 30f * scale;
+            var bubbleX = Mathf.Clamp(head.x - bubbleWidth * 0.5f, 12f, Screen.width - bubbleWidth - 12f);
+            bubbleY = Mathf.Clamp(bubbleY, 12f, Screen.height - bubbleHeight - 12f);
+            var bubbleRect = new Rect(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
+
+            var previousColor = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.24f);
+            GUI.Box(new Rect(bubbleRect.x + 5f, bubbleRect.y + 6f,
+                bubbleRect.width, bubbleRect.height), GUIContent.none, bubbleFrameStyle);
+            GUI.color = Color.white;
+            GUI.Box(bubbleRect, GUIContent.none, bubbleFrameStyle);
+
+            var tailWidth = 40f * scale;
+            var tailHeight = 28f * scale;
+            var tailX = Mathf.Clamp(head.x - tailWidth * 0.5f,
+                bubbleRect.x + 24f * scale, bubbleRect.xMax - 64f * scale);
+            var tailRect = bubbleAbove
+                ? new Rect(tailX, bubbleRect.yMax - 3f, tailWidth, tailHeight)
+                : new Rect(tailX, bubbleRect.y - tailHeight + 3f, tailWidth, tailHeight);
+            if (bubbleAbove)
+            {
+                GUI.DrawTextureWithTexCoords(tailRect, bubbleTailTexture,
+                    new Rect(0f, 1f, 1f, -1f), true);
+            }
+            else
+            {
+                GUI.DrawTexture(tailRect, bubbleTailTexture, ScaleMode.StretchToFill, true);
+            }
+
+            var elapsed = Mathf.Max(0f, Time.unscaledTime - subtitleStartedAt);
+            var visibleCharacters = Mathf.Clamp(
+                Mathf.FloorToInt(elapsed * subtitleCharactersPerSecond), 0, activeSubtitle.Length);
+            var visibleText = activeSubtitle.Substring(0, visibleCharacters);
+            if (visibleCharacters < activeSubtitle.Length && Mathf.FloorToInt(elapsed * 4f) % 2 == 0)
+            {
+                visibleText += "▌";
+            }
+            var textRect = new Rect(
+                bubbleRect.x + 22f * scale, bubbleRect.y + 13f * scale,
+                bubbleRect.width - 44f * scale, bubbleRect.height - 28f * scale);
+            GUI.Label(textRect, visibleText, bubbleTextStyle);
+            GUI.color = previousColor;
+        }
+
+        private bool TryGetAvatarHeadScreenPoint(out Vector2 point)
+        {
+            point = default;
+            var camera = Camera.main;
+            if (camera == null)
+            {
+                return false;
+            }
+
+            var found = false;
+            var avatarBounds = default(Bounds);
+            foreach (var renderer in motion.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!renderer.enabled || !renderer.gameObject.activeInHierarchy ||
+                    renderer is ParticleSystemRenderer)
+                {
+                    continue;
+                }
+                if (!found)
+                {
+                    avatarBounds = renderer.bounds;
+                    found = true;
+                }
+                else
+                {
+                    avatarBounds.Encapsulate(renderer.bounds);
+                }
+            }
+            if (!found)
+            {
+                return false;
+            }
+
+            var world = new Vector3(avatarBounds.center.x,
+                avatarBounds.max.y + avatarBounds.size.y * 0.08f, avatarBounds.center.z);
+            var screen = camera.WorldToScreenPoint(world);
+            if (screen.z <= 0f)
+            {
+                return false;
+            }
+            point = new Vector2(screen.x, Screen.height - screen.y);
+            return true;
+        }
+
+        private static Texture2D CreateRoundedBubbleTexture(int width, int height, int radius, int border)
+        {
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                name = "Anime Speech Bubble",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.DontSave
+            };
+            var pixels = new Color32[width * height];
+            for (var y = 0; y < height; y++)
+            {
+                for (var x = 0; x < width; x++)
+                {
+                    var outer = IsInsideRoundedRect(x, y, width, height, radius, 0);
+                    var inner = IsInsideRoundedRect(x, y, width, height, radius, border);
+                    pixels[y * width + x] = !outer
+                        ? new Color32(0, 0, 0, 0)
+                        : inner ? new Color32(255, 255, 255, 250) : new Color32(24, 20, 30, 255);
+                }
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return texture;
+        }
+
+        private static bool IsInsideRoundedRect(int x, int y, int width, int height, int radius, int inset)
+        {
+            var left = inset;
+            var right = width - 1 - inset;
+            var bottom = inset;
+            var top = height - 1 - inset;
+            if (x < left || x > right || y < bottom || y > top)
+            {
+                return false;
+            }
+            var cornerRadius = Mathf.Max(1, radius - inset);
+            var centerX = Mathf.Clamp(x, left + cornerRadius, right - cornerRadius);
+            var centerY = Mathf.Clamp(y, bottom + cornerRadius, top - cornerRadius);
+            var dx = x - centerX;
+            var dy = y - centerY;
+            return dx * dx + dy * dy <= cornerRadius * cornerRadius;
+        }
+
+        private static Texture2D CreateBubbleTailTexture(int width, int height, int border)
+        {
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                name = "Anime Speech Bubble Tail",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.DontSave
+            };
+            var pixels = new Color32[width * height];
+            for (var y = 0; y < height; y++)
+            {
+                var normalized = y / (float)(height - 1);
+                var halfWidth = (1f - normalized) * width * 0.5f;
+                var distance = 0f;
+                for (var x = 0; x < width; x++)
+                {
+                    distance = Mathf.Abs(x - (width - 1) * 0.5f);
+                    var inside = distance <= halfWidth;
+                    var innerHalfWidth = Mathf.Max(0f, halfWidth - border);
+                    var inner = y < height - border && distance <= innerHalfWidth;
+                    pixels[y * width + x] = !inside
+                        ? new Color32(0, 0, 0, 0)
+                        : inner ? new Color32(255, 255, 255, 250) : new Color32(24, 20, 30, 255);
+                }
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return texture;
         }
 
         private static AudioClip Load(string clipName)

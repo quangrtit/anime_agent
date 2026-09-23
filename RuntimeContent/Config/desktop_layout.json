@@ -19,5 +19,8 @@
   "chatterEnabled": true,
   "chatterMinSeconds": 14.0,
   "chatterMaxSeconds": 32.0,
-  "chatterVolume": 0.72
+  "chatterVolume": 0.72,
+  "speechBubbleEnabled": true,
+  "speechBubbleScale": 1.0,
+  "speechTextCharactersPerSecond": 22.0
 }

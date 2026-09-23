@@ -50,7 +50,7 @@ if (Test-Path -LiteralPath $runtimeContent) {
 }
 
 $thirdPartyDirectory = Join-Path $playerDirectory 'ThirdPartyLicenses'
-foreach ($assetId in @('CHAR-003', 'CHAR-004', 'ANIM-001', 'AUDIO-001', 'AUDIO-002')) {
+foreach ($assetId in @('CHAR-003', 'CHAR-004', 'ANIM-001', 'AUDIO-001', 'AUDIO-002', 'AUDIO-003')) {
     $licenseSource = Join-Path $repoRoot "LICENSES\$assetId"
     if (Test-Path -LiteralPath $licenseSource) {
         $licenseDestination = Join-Path $thirdPartyDirectory $assetId
