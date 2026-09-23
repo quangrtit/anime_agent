@@ -41,8 +41,13 @@ namespace AnimeAssistant.Presentation
         private Quaternion returnStartRotation = Quaternion.identity;
         private GameObject doorArt;
         private GameObject recallButton;
+        private Transform recallButtonCap;
         private Collider recallButtonCollider;
         private Material recallButtonMaterial;
+        private Material recallButtonBaseMaterial;
+        private Material recallButtonRimMaterial;
+        private Material recallButtonArcMaterial;
+        private float lastUserDoorClickTime = float.NegativeInfinity;
         private bool completedFirstCycle;
         private string lastEvent = "Ready — click the portal door or press Space";
 
@@ -128,6 +133,18 @@ namespace AnimeAssistant.Presentation
             {
                 Destroy(recallButtonMaterial);
             }
+            if (recallButtonBaseMaterial != null)
+            {
+                Destroy(recallButtonBaseMaterial);
+            }
+            if (recallButtonRimMaterial != null)
+            {
+                Destroy(recallButtonRimMaterial);
+            }
+            if (recallButtonArcMaterial != null)
+            {
+                Destroy(recallButtonArcMaterial);
+            }
         }
 
         private void Update()
@@ -144,14 +161,39 @@ namespace AnimeAssistant.Presentation
 
         public void SimulateDoorClick()
         {
-            orchestrator.OnDoorClicked();
+            if (orchestrator.OnDoorClicked())
+            {
+                DesktopAudioController.Instance?.PlayButtonPress();
+            }
+        }
+
+        public void HandleUserDoorClick()
+        {
+            // A transparent layered window can expose the same physical click to
+            // both Win32 polling and Unity input during a style transition.
+            if (Time.unscaledTime - lastUserDoorClickTime < 0.25f)
+            {
+                return;
+            }
+
+            // Runtime clicks during travel are ignored instead of being queued.
+            // This keeps one physical click from summoning and immediately
+            // recalling the avatar as the interactive bounds change shape.
+            if (State == SummonState.DoorOpening || State == SummonState.AvatarExiting ||
+                (State == SummonState.AvatarActive && ElapsedInState < 0.75f))
+            {
+                return;
+            }
+
+            lastUserDoorClickTime = Time.unscaledTime;
+            SimulateDoorClick();
         }
 
         private void ReadInput()
         {
             if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
             {
-                SimulateDoorClick();
+                HandleUserDoorClick();
                 return;
             }
 
@@ -171,7 +213,7 @@ namespace AnimeAssistant.Presentation
                  hit.transform.IsChildOf(doorClickZone.transform) ||
                  (recallButton != null && hit.transform.IsChildOf(recallButton.transform))))
             {
-                SimulateDoorClick();
+                HandleUserDoorClick();
             }
 #endif
         }
@@ -322,6 +364,10 @@ namespace AnimeAssistant.Presentation
         private void ApplyClosedPose()
         {
             SetDoorPresentation(!completedFirstCycle);
+            if (completedFirstCycle)
+            {
+                UpdateRecallButtonAnimation();
+            }
             SetAvatarPresentation(false);
             activeMotionOffset = Vector3.zero;
             activeMotionRotation = Quaternion.identity;
@@ -402,12 +448,7 @@ namespace AnimeAssistant.Presentation
             handle.localRotation = handleRest;
             portalLight.intensity = 0f;
             SetDoorPresentation(false);
-            if (recallButton != null)
-            {
-                var pulse = 1f + Mathf.Sin(Time.unscaledTime * 3.2f) * 0.08f;
-                var size = DesktopExperienceConfig.Current.recallButtonScale;
-                recallButton.transform.localScale = new Vector3(size * pulse, size * 0.22f, size * pulse);
-            }
+            UpdateRecallButtonAnimation();
         }
 
         private void SetDoorPresentation(bool showDoor)
@@ -434,32 +475,166 @@ namespace AnimeAssistant.Presentation
                 return;
             }
 
-            recallButton = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            recallButton.name = "DoorRecallButton";
+            recallButton = new GameObject("DoorRecallButton");
             recallButton.transform.SetParent(doorClickZone.transform.parent, false);
             recallButton.transform.localPosition = new Vector3(1.75f, 0.34f, -0.54f);
-            recallButton.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            recallButton.transform.localRotation = Quaternion.identity;
             var size = DesktopExperienceConfig.Current.recallButtonScale;
-            recallButton.transform.localScale = new Vector3(size, size * 0.22f, size);
-            recallButtonCollider = recallButton.GetComponent<Collider>();
+            recallButton.transform.localScale = Vector3.one;
 
-            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
-            if (shader != null)
-            {
-                recallButtonMaterial = new Material(shader)
-                {
-                    name = "Runtime Door Recall Button"
-                };
-                var color = new Color(0.18f, 0.92f, 1f, 0.96f);
-                if (recallButtonMaterial.HasProperty("_BaseColor"))
-                {
-                    recallButtonMaterial.SetColor("_BaseColor", color);
-                }
-                recallButtonMaterial.color = color;
-                recallButton.GetComponent<Renderer>().sharedMaterial = recallButtonMaterial;
-            }
+            recallButtonBaseMaterial = CreateButtonMaterial("Recall Base",
+                new Color(0.035f, 0.045f, 0.065f, 1f), 0.88f, 0.42f, false);
+            recallButtonRimMaterial = CreateButtonMaterial("Recall Rim",
+                new Color(0.34f, 0.38f, 0.44f, 1f), 0.95f, 0.72f, false);
+            recallButtonMaterial = CreateButtonMaterial("Recall Red Switch",
+                new Color(0.82f, 0.018f, 0.025f, 1f), 0.42f, 0.83f, true);
+            recallButtonArcMaterial = CreateButtonMaterial("Recall Electric Arc",
+                new Color(1f, 0.40f, 0.025f, 1f), 0f, 0.25f, true);
+
+            CreateRecallPrimitive("Elliptical Base", PrimitiveType.Cylinder, recallButton.transform,
+                new Vector3(0f, 0f, 0.055f), Quaternion.Euler(90f, 0f, 0f),
+                new Vector3(size * 1.52f, size * 0.30f, size * 1.03f), recallButtonBaseMaterial, false);
+            CreateRecallPrimitive("Metal Bezel", PrimitiveType.Cylinder, recallButton.transform,
+                new Vector3(0f, 0f, -0.005f), Quaternion.Euler(90f, 0f, 0f),
+                new Vector3(size * 1.27f, size * 0.25f, size * 0.82f), recallButtonRimMaterial, false);
+            var cap = CreateRecallPrimitive("Red Emergency Switch", PrimitiveType.Cylinder, recallButton.transform,
+                new Vector3(0f, 0f, -0.085f), Quaternion.Euler(90f, 0f, 0f),
+                new Vector3(size * 1.02f, size * 0.29f, size * 0.61f), recallButtonMaterial, true);
+            recallButtonCap = cap.transform;
+            recallButtonCollider = cap.GetComponent<Collider>();
+
+            var highlight = CreateRecallPrimitive("Switch Highlight", PrimitiveType.Sphere, recallButton.transform,
+                new Vector3(-size * 0.25f, size * 0.15f, -size * 0.205f), Quaternion.identity,
+                new Vector3(size * 0.24f, size * 0.10f, size * 0.045f), recallButtonArcMaterial, false);
+            highlight.transform.localRotation = Quaternion.Euler(0f, 0f, -18f);
+            CreateElectricArc("Electric Arc Left", size, -1f, 0.12f);
+            CreateElectricArc("Electric Arc Right", size, 1f, -0.08f);
+            CreateElectricArc("Electric Arc Top", size, 0.1f, 0.62f);
 
             recallButton.SetActive(false);
+        }
+
+        private GameObject CreateRecallPrimitive(string objectName, PrimitiveType primitive,
+            Transform parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale,
+            Material material, bool keepCollider)
+        {
+            var part = GameObject.CreatePrimitive(primitive);
+            part.name = objectName;
+            part.transform.SetParent(parent, false);
+            part.transform.localPosition = localPosition;
+            part.transform.localRotation = localRotation;
+            part.transform.localScale = localScale;
+            var renderer = part.GetComponent<Renderer>();
+            if (renderer != null && material != null)
+            {
+                renderer.sharedMaterial = material;
+            }
+            if (!keepCollider && part.TryGetComponent<Collider>(out var partCollider))
+            {
+                Destroy(partCollider);
+            }
+            return part;
+        }
+
+        private void CreateElectricArc(string arcName, float size, float side, float vertical)
+        {
+            var arcObject = new GameObject(arcName);
+            arcObject.transform.SetParent(recallButton.transform, false);
+            var arc = arcObject.AddComponent<LineRenderer>();
+            arc.useWorldSpace = false;
+            arc.loop = false;
+            arc.positionCount = 5;
+            arc.widthMultiplier = size * 0.055f;
+            arc.numCapVertices = 2;
+            arc.sharedMaterial = recallButtonArcMaterial;
+            var outerX = side * size * (vertical > 0.5f ? 0.45f : 1.65f);
+            var outerY = size * vertical;
+            arc.SetPositions(new[]
+            {
+                new Vector3(side * size * 0.98f, size * vertical * 0.42f, -size * 0.25f),
+                new Vector3(side * size * 1.18f, outerY + size * 0.10f, -size * 0.24f),
+                new Vector3(side * size * 1.30f, outerY - size * 0.04f, -size * 0.23f),
+                new Vector3(outerX, outerY + size * 0.15f, -size * 0.22f),
+                new Vector3(side * size * (vertical > 0.5f ? 0.58f : 1.82f),
+                    outerY + size * 0.22f, -size * 0.21f)
+            });
+        }
+
+        private static Material CreateButtonMaterial(string materialName, Color color,
+            float metallic, float smoothness, bool emissive)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Lit") ??
+                         Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            if (shader == null)
+            {
+                return null;
+            }
+
+            var material = new Material(shader) { name = materialName };
+            if (material.HasProperty("_BaseColor"))
+            {
+                material.SetColor("_BaseColor", color);
+            }
+            material.color = color;
+            if (material.HasProperty("_Metallic"))
+            {
+                material.SetFloat("_Metallic", metallic);
+            }
+            if (material.HasProperty("_Smoothness"))
+            {
+                material.SetFloat("_Smoothness", smoothness);
+            }
+            if (emissive && material.HasProperty("_EmissionColor"))
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", color * 2.2f);
+            }
+            return material;
+        }
+
+        private void UpdateRecallButtonAnimation()
+        {
+            if (recallButton == null || !recallButton.activeSelf)
+            {
+                return;
+            }
+
+            AlignRecallButtonToCamera();
+            var pulse = 1f + Mathf.Sin(Time.unscaledTime * 4.2f) * 0.045f;
+            recallButton.transform.localScale = new Vector3(pulse, pulse, 1f);
+            if (recallButtonCap != null)
+            {
+                var press = Mathf.Max(0f, Mathf.Sin(Time.unscaledTime * 2.1f)) * 0.008f;
+                var capPosition = recallButtonCap.localPosition;
+                capPosition.z = -0.085f + press;
+                recallButtonCap.localPosition = capPosition;
+            }
+            if (recallButtonArcMaterial != null)
+            {
+                var flicker = 1.55f + Mathf.Abs(Mathf.Sin(Time.unscaledTime * 9.5f)) * 1.35f;
+                var arcColor = new Color(1f, 0.32f, 0.015f, 1f) * flicker;
+                if (recallButtonArcMaterial.HasProperty("_EmissionColor"))
+                {
+                    recallButtonArcMaterial.SetColor("_EmissionColor", arcColor);
+                }
+            }
+        }
+
+        private void AlignRecallButtonToCamera()
+        {
+            if (interactionCamera == null)
+            {
+                return;
+            }
+
+            // The visible face of the procedural switch is local -Z. Keep that
+            // face aimed at the viewer independently of the rotated door parent.
+            var awayFromCamera = recallButton.transform.position - interactionCamera.transform.position;
+            if (awayFromCamera.sqrMagnitude > 0.0001f)
+            {
+                recallButton.transform.rotation = Quaternion.LookRotation(
+                    awayFromCamera.normalized, interactionCamera.transform.up);
+            }
         }
 
         private void OnTransitioned(SummonTransition transition)

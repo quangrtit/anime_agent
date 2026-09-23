@@ -52,6 +52,22 @@ namespace AnimeAssistant.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator DuplicateRuntimeClick_IsDebouncedInsteadOfQueuingAnImmediateReturn()
+        {
+            var fixture = CreateFixture();
+
+            fixture.Controller.HandleUserDoorClick();
+            fixture.Controller.HandleUserDoorClick();
+
+            Assert.That(fixture.Controller.State, Is.EqualTo(SummonState.DoorOpening));
+            Assert.That(fixture.Controller.PendingReturn, Is.False,
+                "One physical click must not queue a return while the avatar is still exiting.");
+
+            Object.Destroy(fixture.Root);
+            yield return null;
+        }
+
+        [UnityTest]
         public IEnumerator IntegratedProductionAvatarScene_CompletesOneHundredCycles()
         {
             SceneManager.LoadScene("DesktopPetPrototype", LoadSceneMode.Single);
@@ -94,6 +110,24 @@ namespace AnimeAssistant.Tests.PlayMode
             Assert.That(controller.IsDoorVisible, Is.False, "The door must hide once the avatar is outside.");
             Assert.That(controller.IsRecallButtonVisible, Is.True, "A compact recall button must replace the door.");
             Assert.That(controller.IsAvatarVisible, Is.True);
+            var recallSwitch = GameObject.Find("DoorRecallButton");
+            Assert.That(recallSwitch, Is.Not.Null);
+            var redCap = recallSwitch.transform.Find("Red Emergency Switch");
+            var basePlate = recallSwitch.transform.Find("Elliptical Base");
+            Assert.That(redCap, Is.Not.Null);
+            Assert.That(basePlate, Is.Not.Null);
+            Assert.That(redCap.localScale.x, Is.GreaterThan(redCap.localScale.z),
+                "The recall control must be a horizontal 3D ellipse, not the old round disc.");
+            Assert.That(redCap.localPosition.z, Is.LessThan(basePlate.localPosition.z),
+                "The red cap must protrude toward the viewer, with the dark base behind it.");
+            var viewerDirection = (Camera.main.transform.position - recallSwitch.transform.position).normalized;
+            Assert.That(Vector3.Dot(-recallSwitch.transform.forward, viewerDirection), Is.GreaterThan(0.99f),
+                "The visible -Z face of the recall switch must point directly at the viewer.");
+            Assert.That(Resources.Load<AudioClip>("Audio/DesktopAssistant/button_press"), Is.Not.Null);
+            Assert.That(Resources.Load<AudioClip>("Audio/DesktopAssistant/door_open"), Is.Not.Null);
+            Assert.That(Resources.Load<AudioClip>("Audio/DesktopAssistant/voice_jump_1"), Is.Not.Null);
+            Assert.That(Resources.Load<AudioClip>("Audio/DesktopAssistant/voice_chatter_vi_1"), Is.Not.Null);
+            Assert.That(Resources.Load<AudioClip>("Audio/DesktopAssistant/voice_chatter_jp_3"), Is.Not.Null);
 
             controller.SimulateDoorClick();
             Assert.That(controller.IsDoorVisible, Is.True, "Clicking recall must restore the door before return travel.");

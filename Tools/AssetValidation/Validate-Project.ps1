@@ -27,7 +27,15 @@ $requiredPaths = @(
     'Assets/ThirdParty/UnityChan/Animations/unitychan_WALK00_F.fbx',
     'LICENSES/CHAR-004/LICENSE.txt',
     'LICENSES/CHAR-004/UCL2.02_TERMS_EN.pdf',
-    'LICENSES/ANIM-001/LICENSE.txt'
+    'LICENSES/ANIM-001/LICENSE.txt',
+    'Assets/_Project/Resources/Audio/DesktopAssistant/button_press.ogg',
+    'Assets/_Project/Resources/Audio/DesktopAssistant/door_open.ogg',
+    'Assets/_Project/Resources/Audio/DesktopAssistant/voice_jump_1.wav',
+    'Assets/_Project/Scripts/Presentation/DesktopAudioController.cs',
+    'LICENSES/AUDIO-001/LICENSE.txt',
+    'LICENSES/AUDIO-002/LICENSE.txt',
+    'Tools/Build/Build-SingleExe.ps1',
+    'Tools/PortableLauncher/AnimeAssistant.PortableLauncher.csproj'
 )
 
 foreach ($relativePath in $requiredPaths) {

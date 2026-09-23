@@ -84,6 +84,7 @@ namespace AnimeAssistant.Presentation
         private const float NativeBlendDuration = 0.28f;
 
         public AvatarIdleBehaviour CurrentBehaviour => currentBehaviour;
+        public bool IsRoamRunning => currentBehaviour == AvatarIdleBehaviour.Wander && roamUsesRun;
         public static int BehaviourTemplateCount => 7;
 
         private void Start()

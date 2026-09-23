@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -40,6 +41,8 @@ namespace AnimeAssistant.Platform.Windows
         private const uint ModShift = 0x0004;
         private const uint ModNoRepeat = 0x4000;
         private const int ExitHotkeyId = 0xADA1;
+        private const int SwHide = 0;
+        private const int SwShowNoActivate = 4;
         private static readonly IntPtr HwndTopmost = new IntPtr(-1);
         private static readonly IntPtr HwndNotTopmost = new IntPtr(-2);
 
@@ -53,6 +56,8 @@ namespace AnimeAssistant.Platform.Windows
         private bool initialized;
         private bool sceneConfigured;
         private bool desktopCompositionApplied;
+        private bool contentReady;
+        private bool revealQueued;
         private bool clickThrough;
         private float hitTestCountdown;
         private float rendererRefreshCountdown;
@@ -70,7 +75,7 @@ namespace AnimeAssistant.Platform.Windows
         public bool IsInitialized => initialized;
         public bool IsClickThrough => clickThrough;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
         private static void CreateRuntimeAdapter()
         {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
@@ -89,6 +94,9 @@ namespace AnimeAssistant.Platform.Windows
         {
             Application.runInBackground = true;
             SceneManager.sceneLoaded += OnSceneLoaded;
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+            Initialize();
+#endif
         }
 
         private void Start()
@@ -111,6 +119,16 @@ namespace AnimeAssistant.Platform.Windows
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
+            StopAllCoroutines();
+            contentReady = false;
+            revealQueued = false;
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+            if (windowHandle != IntPtr.Zero)
+            {
+                SetLayeredWindowAttributes(windowHandle, 0, 0, LwaAlpha);
+                ShowWindow(windowHandle, SwHide);
+            }
+#endif
             sceneConfigured = false;
             desktopCompositionApplied = false;
         }
@@ -165,11 +183,17 @@ namespace AnimeAssistant.Platform.Windows
                 return;
             }
 
-            windowHandle = Process.GetCurrentProcess().MainWindowHandle;
+            var process = Process.GetCurrentProcess();
+            process.Refresh();
+            windowHandle = process.MainWindowHandle;
             if (windowHandle == IntPtr.Zero)
             {
                 return;
             }
+
+            // Never expose Unity's default opaque player surface. The window is
+            // revealed only after the transparent camera and desktop layout exist.
+            ShowWindow(windowHandle, SwHide);
 
             var style = GetWindowLongPtr(windowHandle, GwlStyle).ToInt64();
             style &= ~(WsCaption | WsThickFrame | WsMinimizeBox | WsMaximizeBox | WsSysMenu);
@@ -179,7 +203,7 @@ namespace AnimeAssistant.Platform.Windows
             var extended = GetWindowLongPtr(windowHandle, GwlExStyle).ToInt64();
             extended |= WsExLayered | WsExToolWindow;
             SetWindowLongPtr(windowHandle, GwlExStyle, new IntPtr(extended));
-            SetLayeredWindowAttributes(windowHandle, 0, 255, LwaAlpha);
+            SetLayeredWindowAttributes(windowHandle, 0, 0, LwaAlpha);
 
             var margins = new Margins(-1, -1, -1, -1);
             DwmExtendFrameIntoClientArea(windowHandle, ref margins);
@@ -220,7 +244,7 @@ namespace AnimeAssistant.Platform.Windows
             SetWindowLongPtr(windowHandle, GwlExStyle, new IntPtr(extended));
             var margins = new Margins(-1, -1, -1, -1);
             DwmExtendFrameIntoClientArea(windowHandle, ref margins);
-            SetLayeredWindowAttributes(windowHandle, 0, 255, LwaAlpha);
+            SetLayeredWindowAttributes(windowHandle, 0, contentReady ? (byte)255 : (byte)0, LwaAlpha);
             var refreshedWorkArea = GetWorkAreaForCurrentMonitor();
             if (!refreshedWorkArea.Equals(targetWindowRect))
             {
@@ -245,7 +269,8 @@ namespace AnimeAssistant.Platform.Windows
             }
 
             SetWindowPos(windowHandle, value ? HwndTopmost : HwndNotTopmost,
-                0, 0, 0, 0, SwpNoActivate | SwpFrameChanged | SwpShowWindow | 0x0001 | 0x0002);
+                0, 0, 0, 0, SwpNoActivate | SwpFrameChanged |
+                (contentReady ? SwpShowWindow : 0u) | 0x0001 | 0x0002);
 #endif
         }
 
@@ -309,7 +334,8 @@ namespace AnimeAssistant.Platform.Windows
             if (windowHandle != IntPtr.Zero)
             {
                 SetWindowPos(windowHandle, HwndTopmost, screenRect.x, screenRect.y,
-                    screenRect.width, screenRect.height, SwpNoActivate | SwpFrameChanged | SwpShowWindow);
+                    screenRect.width, screenRect.height, SwpNoActivate | SwpFrameChanged |
+                    (contentReady ? SwpShowWindow : 0u));
             }
 #endif
         }
@@ -382,13 +408,10 @@ namespace AnimeAssistant.Platform.Windows
                 return;
             }
 
-            var pixelsPerCentimetre = 96f * GetDpiScaleForCurrentMonitor() / 2.54f;
-            var rightMarginPixels = config.doorRightMarginCm * pixelsPerCentimetre;
-            var bottomMarginPixels = config.doorBottomMarginCm * pixelsPerCentimetre;
             var currentCenter = doorBounds.center;
             var desiredCenter = new Vector2(
-                Screen.width - rightMarginPixels - doorBounds.width * 0.5f,
-                bottomMarginPixels + doorBounds.height * 0.5f);
+                Screen.width * config.doorAnchorViewportX,
+                Screen.height * config.doorAnchorViewportY);
             var depth = overlayCamera.WorldToScreenPoint(CalculateWorldBounds(doorRenderers).center).z;
             if (depth <= 0f)
             {
@@ -416,13 +439,13 @@ namespace AnimeAssistant.Platform.Windows
                 Physics.SyncTransforms();
 
                 // Rotation changes the projected footprint, so perform a final
-                // pixel-space correction to preserve the centimetre margins.
+                // pixel-space correction to preserve the configured screen anchor.
                 if (TryGetProjectedBounds(doorRenderers, out var rotatedBounds))
                 {
                     currentCenter = rotatedBounds.center;
                     desiredCenter = new Vector2(
-                        Screen.width - rightMarginPixels - rotatedBounds.width * 0.5f,
-                        bottomMarginPixels + rotatedBounds.height * 0.5f);
+                        Screen.width * config.doorAnchorViewportX,
+                        Screen.height * config.doorAnchorViewportY);
                     depth = overlayCamera.WorldToScreenPoint(CalculateWorldBounds(doorRenderers).center).z;
                     currentWorld = overlayCamera.ScreenToWorldPoint(
                         new Vector3(currentCenter.x, currentCenter.y, depth));
@@ -449,11 +472,28 @@ namespace AnimeAssistant.Platform.Windows
             compositionScreenHeight = Screen.height;
             TryGetProjectedBounds(doorRenderers, out var finalDoorBounds);
             UnityEngine.Debug.Log($"[DesktopLayout] Scale={compactScale:F3}, " +
-                                  $"margins={config.doorRightMarginCm:F1}cm right/{config.doorBottomMarginCm:F1}cm bottom, " +
+                                  $"doorAnchor=({config.doorAnchorViewportX:F3}, {config.doorAnchorViewportY:F3}), " +
                                   $"roaming viewport={config.roamMinViewportX:F2}..{config.roamMaxViewportX:F2} " +
                                   $"depth={config.roamNearDepth:F2}..{config.roamFarDepth:F2}, " +
                                   $"workArea={targetWindowRect.width}x{targetWindowRect.height}, " +
                                   $"doorPixels={finalDoorBounds}.");
+            if (!revealQueued)
+            {
+                revealQueued = true;
+                StartCoroutine(RevealAfterTransparentFrames());
+            }
+        }
+
+        private IEnumerator RevealAfterTransparentFrames()
+        {
+            // Render two complete transparent frames while the native window is
+            // hidden. This prevents DWM from ever presenting Unity's initial white buffer.
+            yield return new WaitForEndOfFrame();
+            yield return new WaitForEndOfFrame();
+            contentReady = true;
+            ApplyTransparentWindowFrameAndPlacement();
+            ShowWindow(windowHandle, SwShowNoActivate);
+            UnityEngine.Debug.Log("[DesktopOverlay] Transparent framebuffer ready; native window revealed.");
         }
 
         private bool TryGetProjectedBounds(IReadOnlyList<Renderer> renderers, out Rect bounds)
@@ -592,7 +632,7 @@ namespace AnimeAssistant.Platform.Windows
             var hotkeyPressed = PeekMessage(out _, IntPtr.Zero, WmHotkey, WmHotkey, PmRemove);
             if (leftMouseDown && !leftMouseWasDown && cursorOverDoor)
             {
-                summonController?.SimulateDoorClick();
+                summonController?.HandleUserDoorClick();
             }
             if (hotkeyPressed || (exitHotkeyDown && !exitHotkeyWasDown) ||
                 (rightMouseDown && !rightMouseWasDown && cursorOverInteractiveContent))
@@ -747,6 +787,9 @@ namespace AnimeAssistant.Platform.Windows
         [DllImport("user32.dll")]
         private static extern bool SetWindowPos(IntPtr window, IntPtr insertAfter, int x, int y,
             int width, int height, uint flags);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr window, int command);
 
         [DllImport("user32.dll")]
         private static extern bool SetLayeredWindowAttributes(IntPtr window, uint colorKey, byte alpha, uint flags);

@@ -25,6 +25,11 @@ namespace AnimeAssistant.Editor
 
         private static void BuildPlayer(string outputPath, BuildOptions options)
         {
+            // This is a desktop overlay rather than a conventional game. Showing
+            // Unity's splash creates an opaque game window before transparency is applied.
+            PlayerSettings.SplashScreen.show = false;
+            PlayerSettings.SplashScreen.showUnityLogo = false;
+
             var scenes = EditorBuildSettings.scenes
                 .Where(scene => scene.enabled)
                 .Select(scene => scene.path)

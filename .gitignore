@@ -27,6 +27,7 @@ Assets/Readme.asset.meta
 .idea/
 *.csproj
 !Tools/DomainVerification/DomainSmoke.csproj
+!Tools/PortableLauncher/AnimeAssistant.PortableLauncher.csproj
 *.sln
 *.suo
 *.user

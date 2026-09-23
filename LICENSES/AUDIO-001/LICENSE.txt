@@ -1,0 +1,7 @@
+Kenney UI Audio, Impact Sounds, and RPG Audio
+
+License: Creative Commons Zero (CC0 1.0)
+https://creativecommons.org/publicdomain/zero/1.0/
+
+The source archives state that these assets may be used in personal and
+commercial projects. Credit to Kenney is appreciated but not mandatory.

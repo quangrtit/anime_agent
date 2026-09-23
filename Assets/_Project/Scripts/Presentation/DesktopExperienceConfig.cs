@@ -10,6 +10,8 @@ namespace AnimeAssistant.Presentation
         public float displayScale = 0.6667f;
         public float doorRightMarginCm = 3.5f;
         public float doorBottomMarginCm = 2f;
+        public float doorAnchorViewportX = 0.831f;
+        public float doorAnchorViewportY = 0.293f;
         public float avatarStartViewportX = 0.72f;
         public float roamMinViewportX = 0.06f;
         public float roamMaxViewportX = 0.86f;
@@ -19,12 +21,21 @@ namespace AnimeAssistant.Presentation
         public float runWorldUnitsPerSecond = 1.18f;
         public float doorCollapseSeconds = 0.72f;
         public float recallButtonScale = 0.32f;
+        public float masterVolume = 0.8f;
+        public float effectsVolume = 0.85f;
+        public float voiceVolume = 0.65f;
+        public bool chatterEnabled = true;
+        public float chatterMinSeconds = 14f;
+        public float chatterMaxSeconds = 32f;
+        public float chatterVolume = 0.72f;
 
         public void Normalize()
         {
             displayScale = Mathf.Clamp(displayScale, 0.35f, 1.25f);
             doorRightMarginCm = Mathf.Clamp(doorRightMarginCm, 0.5f, 10f);
             doorBottomMarginCm = Mathf.Clamp(doorBottomMarginCm, 0.5f, 8f);
+            doorAnchorViewportX = Mathf.Clamp01(doorAnchorViewportX);
+            doorAnchorViewportY = Mathf.Clamp01(doorAnchorViewportY);
             avatarStartViewportX = Mathf.Clamp(avatarStartViewportX, 0.1f, 0.9f);
             roamMinViewportX = Mathf.Clamp(roamMinViewportX, 0.02f, 0.8f);
             roamMaxViewportX = Mathf.Clamp(roamMaxViewportX, roamMinViewportX + 0.05f, 0.96f);
@@ -35,6 +46,12 @@ namespace AnimeAssistant.Presentation
                 walkWorldUnitsPerSecond + 0.1f, 4f);
             doorCollapseSeconds = Mathf.Clamp(doorCollapseSeconds, 0.25f, 2f);
             recallButtonScale = Mathf.Clamp(recallButtonScale, 0.15f, 0.6f);
+            masterVolume = Mathf.Clamp01(masterVolume);
+            effectsVolume = Mathf.Clamp01(effectsVolume);
+            voiceVolume = Mathf.Clamp01(voiceVolume);
+            chatterMinSeconds = Mathf.Clamp(chatterMinSeconds, 5f, 120f);
+            chatterMaxSeconds = Mathf.Clamp(chatterMaxSeconds, chatterMinSeconds + 2f, 240f);
+            chatterVolume = Mathf.Clamp01(chatterVolume);
         }
     }
 

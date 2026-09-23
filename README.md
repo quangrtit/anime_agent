@@ -32,3 +32,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Tools\Build\Build-Windows.
 
 Project sử dụng Unity `6000.0.75f1`, URP `17.0.1` và UniVRM `0.131.2`.
 Đặc tả hiện hành nằm tại `ANIME_DESKTOP_ASSISTANT_WINDOWS_MVP.md`.
+
+## Tải bản chạy sẵn
+
+Vào [GitHub Releases](https://github.com/quangrtit/anime_agent/releases/latest), tải
+`AnimeAssistant-Windows-x64-Portable.zip`, giải nén toàn bộ rồi chạy `AnimeAssistant.exe`.
+
+## Build và phát hành
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Tools\Build\Build-Windows.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Tools\Build\Build-SingleExe.ps1 -SkipUnityBuild
+```
+
+File ZIP để đưa lên Release được tạo tại:
+
+`Builds/AnimeAssistant-Windows-x64-Portable.zip`
