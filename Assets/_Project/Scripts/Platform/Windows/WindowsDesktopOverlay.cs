@@ -51,6 +51,8 @@ namespace AnimeAssistant.Platform.Windows
         private IntPtr windowHandle;
         private Camera overlayCamera;
         private GreyboxSummonController summonController;
+        private HumanoidAvatarMotion avatarMotion;
+        private SummonVfxController summonVfx;
         private RectInt interactiveRegion;
         private RectInt targetWindowRect;
         private bool initialized;
@@ -65,6 +67,7 @@ namespace AnimeAssistant.Platform.Windows
         private float windowRefreshCountdown;
         private bool cursorOverInteractiveContent;
         private bool cursorOverDoor;
+        private bool cursorOverAvatar;
         private bool exitHotkeyWasDown;
         private bool leftMouseWasDown;
         private bool rightMouseWasDown;
@@ -354,6 +357,8 @@ namespace AnimeAssistant.Platform.Windows
         {
             overlayCamera = Camera.main;
             summonController = FindFirstObjectByType<GreyboxSummonController>();
+            avatarMotion = FindFirstObjectByType<HumanoidAvatarMotion>();
+            summonVfx = FindFirstObjectByType<SummonVfxController>();
             if (overlayCamera == null)
             {
                 return;
@@ -612,6 +617,7 @@ namespace AnimeAssistant.Platform.Windows
             var overAvatar = TryProjectBounds(avatarRenderers, windowRect, out var avatarRegion) &&
                              avatarRegion.Contains(new Vector2Int(cursor.X, cursor.Y));
             cursorOverDoor = overDoor;
+            cursorOverAvatar = overAvatar;
             cursorOverInteractiveContent = overDoor || overAvatar;
             if (TryUnion(doorRegion, avatarRegion, out var union))
             {
@@ -633,6 +639,12 @@ namespace AnimeAssistant.Platform.Windows
             if (leftMouseDown && !leftMouseWasDown && cursorOverDoor)
             {
                 summonController?.HandleUserDoorClick();
+            }
+            else if (leftMouseDown && !leftMouseWasDown && cursorOverAvatar &&
+                     avatarMotion != null && avatarMotion.TriggerClickReaction())
+            {
+                DesktopAudioController.Instance?.PlayAvatarClickReaction();
+                summonVfx?.PlayAvatarClickFireworks();
             }
             if (hotkeyPressed || (exitHotkeyDown && !exitHotkeyWasDown) ||
                 (rightMouseDown && !rightMouseWasDown && cursorOverInteractiveContent))

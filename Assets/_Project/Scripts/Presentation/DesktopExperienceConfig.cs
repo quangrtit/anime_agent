@@ -25,8 +25,8 @@ namespace AnimeAssistant.Presentation
         public float effectsVolume = 0.85f;
         public float voiceVolume = 0.65f;
         public bool chatterEnabled = true;
-        public float chatterMinSeconds = 14f;
-        public float chatterMaxSeconds = 32f;
+        public float chatterMinSeconds = 9f;
+        public float chatterMaxSeconds = 22f;
         public float chatterVolume = 0.72f;
         public bool speechBubbleEnabled = true;
         public float speechBubbleScale = 1f;
@@ -55,7 +55,7 @@ namespace AnimeAssistant.Presentation
             chatterMinSeconds = Mathf.Clamp(chatterMinSeconds, 5f, 120f);
             chatterMaxSeconds = Mathf.Clamp(chatterMaxSeconds, chatterMinSeconds + 2f, 240f);
             chatterVolume = Mathf.Clamp01(chatterVolume);
-            speechBubbleScale = Mathf.Clamp(speechBubbleScale, 0.65f, 1.5f);
+            speechBubbleScale = Mathf.Clamp(speechBubbleScale, 0.5f, 2f);
             speechTextCharactersPerSecond = Mathf.Clamp(speechTextCharactersPerSecond, 8f, 60f);
         }
     }

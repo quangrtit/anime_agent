@@ -80,7 +80,7 @@ namespace AnimeAssistant.Tests.PlayMode
             Assert.That(avatar.GetComponent<HumanoidAvatarMotion>(), Is.Not.Null);
             Assert.That(Object.FindFirstObjectByType<SummonVfxController>(), Is.Not.Null);
             Assert.That(HumanoidAvatarMotion.BehaviourTemplateCount, Is.EqualTo(7));
-            Assert.That(DesktopAudioController.ChatterLineCount, Is.EqualTo(8));
+            Assert.That(DesktopAudioController.ChatterLineCount, Is.EqualTo(16));
 
             for (var cycle = 0; cycle < 100; cycle++)
             {
@@ -129,6 +129,17 @@ namespace AnimeAssistant.Tests.PlayMode
             Assert.That(Resources.Load<AudioClip>("Audio/DesktopAssistant/voice_jump_1"), Is.Not.Null);
             Assert.That(Resources.Load<AudioClip>("Audio/DesktopAssistant/voice_chatter_vi_1"), Is.Not.Null);
             Assert.That(Resources.Load<AudioClip>("Audio/DesktopAssistant/voice_chatter_jp_3"), Is.Not.Null);
+            Assert.That(Resources.Load<AudioClip>("Audio/DesktopAssistant/voice_chatter_jp_12"), Is.Not.Null);
+            Assert.That(Resources.Load<AudioClip>("Audio/DesktopAssistant/voice_click_hurt_vi"), Is.Not.Null);
+
+            var avatarMotion = Object.FindFirstObjectByType<HumanoidAvatarMotion>();
+            var summonVfx = Object.FindFirstObjectByType<SummonVfxController>();
+            Assert.That(avatarMotion, Is.Not.Null);
+            Assert.That(summonVfx, Is.Not.Null);
+            Assert.That(avatarMotion.TriggerClickReaction(), Is.True);
+            Assert.That(avatarMotion.IsClickReactionActive, Is.True);
+            Assert.That(avatarMotion.CurrentBehaviour, Is.EqualTo(AvatarIdleBehaviour.ShortHop));
+            Assert.DoesNotThrow(() => summonVfx.PlayAvatarClickFireworks());
 
             controller.SimulateDoorClick();
             Assert.That(controller.IsDoorVisible, Is.True, "Clicking recall must restore the door before return travel.");

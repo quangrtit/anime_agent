@@ -37,6 +37,7 @@ $requiredPaths = @(
     'LICENSES/AUDIO-001/LICENSE.txt',
     'LICENSES/AUDIO-002/LICENSE.txt',
     'LICENSES/AUDIO-003/LICENSE.txt',
+    'LICENSES/AUDIO-004/LICENSE.txt',
     'Tools/Build/Build-SingleExe.ps1',
     'Tools/PortableLauncher/AnimeAssistant.PortableLauncher.csproj'
 )

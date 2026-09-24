@@ -1,0 +1,2 @@
+https://learn.microsoft.com/azure/ai-services/speech-service/language-support
+https://github.com/rany2/edge-tts

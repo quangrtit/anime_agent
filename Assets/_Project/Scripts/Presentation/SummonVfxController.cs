@@ -19,6 +19,25 @@ namespace AnimeAssistant.Presentation
         private SummonState previousState = SummonState.DoorClosed;
         private float emissionAccumulator;
 
+        public void PlayAvatarClickFireworks()
+        {
+            if (celebrationParticles == null)
+            {
+                return;
+            }
+
+            celebrationParticles.Emit(95);
+            Invoke(nameof(PlayAvatarClickFireworksEcho), 0.16f);
+        }
+
+        private void PlayAvatarClickFireworksEcho()
+        {
+            if (celebrationParticles != null)
+            {
+                celebrationParticles.Emit(55);
+            }
+        }
+
         public void Configure(GreyboxSummonController configuredController, Transform configuredPortalAnchor,
             Transform configuredAvatar)
         {

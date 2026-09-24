@@ -1,0 +1,7 @@
+voice_click_hurt_vi.mp3
+
+Generated text: Ư... ư... đau em!
+Voice: vi-VN-HoaiMyNeural
+Rate: -16%
+Pitch: +32Hz
+Volume: +4%

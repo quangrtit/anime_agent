@@ -1,0 +1,9 @@
+The embedded MP3 is project-authored text synthesized with Microsoft's
+vi-VN-HoaiMyNeural online voice through edge-tts. The edge-tts generation tool
+is not embedded in the player.
+
+Microsoft Services Agreement:
+https://www.microsoft.com/servicesagreement
+
+edge-tts license (LGPL-3.0):
+https://github.com/rany2/edge-tts/blob/master/LICENSE

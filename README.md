@@ -52,3 +52,4 @@ File ZIP để đưa lên Release được tạo tại:
 ## Voice credit
 
 Japanese character chatter: `VOICEVOX:猫使アル`.
+Vietnamese click reaction: Microsoft `vi-VN-HoaiMyNeural`.

@@ -12,11 +12,13 @@ Sửa `desktop_layout.json`, lưu file rồi tắt và mở lại chương trìn
 - `recallButtonScale`: kích thước nút gọi cửa.
 - `masterVolume`, `effectsVolume`, `voiceVolume`: âm lượng từ `0` đến `1`.
 - `chatterEnabled`: bật/tắt lời nói ngẫu nhiên khi nhân vật ở ngoài.
-- `chatterMinSeconds`, `chatterMaxSeconds`: khoảng nghỉ ngẫu nhiên giữa hai câu thoại.
+- `chatterMinSeconds`, `chatterMaxSeconds`: khoảng nghỉ ngẫu nhiên giữa hai câu thoại (mặc định `9`–`22` giây).
 - `chatterVolume`: âm lượng riêng của lời nói ngẫu nhiên, từ `0` đến `1`.
 - `speechBubbleEnabled`: bật/tắt bong bóng thoại trên đầu nhân vật.
-- `speechBubbleScale`: tỷ lệ kích thước bong bóng thoại.
-- `speechTextCharactersPerSecond`: tốc độ chữ hiện dần trong bong bóng.
+- `speechBubbleScale`: tỷ lệ đồng đều của cả đám mây thoại, chữ, viền và đuôi (`1.0` là kích thước nhỏ mặc định; khoảng `0.5` đến `2.0`).
+- Bong bóng luôn hiện đúng ngôn ngữ đang nói: thoại Nhật hiện chữ Nhật, phản ứng Việt hiện chữ Việt; chữ được đồng bộ theo thời lượng âm thanh.
+- Nhấp chuột trái vào nhân vật khi đang ở ngoài để nhân vật phản ứng bằng giọng Việt, nhảy cẫng và phát hiệu ứng pháo hoa.
+- `speechTextCharactersPerSecond`: tốc độ dự phòng khi câu tương tác chưa có clip âm thanh; thoại có giọng sẽ tự đồng bộ theo thời lượng clip.
 
 Ví dụ đặt tâm cửa gần góc phải dưới:
 

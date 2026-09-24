@@ -64,6 +64,8 @@ namespace AnimeAssistant.Presentation
         private float behaviourElapsed;
         private float behaviourDuration;
         private float nextBehaviourDelay = 1.1f;
+        private float clickReactionRemaining;
+        private float lastClickReactionTime = float.NegativeInfinity;
         private uint randomState = 0x6D2B79F5u;
         private Vector3 roamingOffset;
         private Vector3 roamStartOffset;
@@ -85,6 +87,7 @@ namespace AnimeAssistant.Presentation
 
         public AvatarIdleBehaviour CurrentBehaviour => currentBehaviour;
         public bool IsRoamRunning => currentBehaviour == AvatarIdleBehaviour.Wander && roamUsesRun;
+        public bool IsClickReactionActive => clickReactionRemaining > 0f;
         public static int BehaviourTemplateCount => 7;
 
         private void Start()
@@ -146,7 +149,8 @@ namespace AnimeAssistant.Presentation
             var locomoting = state == SummonState.AvatarExiting ||
                              state == SummonState.AvatarReturning ||
                              state == SummonState.AvatarEntering;
-            var celebrating = state == SummonState.AvatarActive && activeElapsed < 2.4f;
+            var celebrating = state == SummonState.AvatarActive && activeElapsed < 2.4f &&
+                              !IsClickReactionActive;
             var phase = Time.unscaledTime * (locomoting ? 4.6f : 1.15f);
             if (nativeGraph.IsValid())
             {
@@ -182,6 +186,31 @@ namespace AnimeAssistant.Presentation
 
             ApplyBodyPose(false, true, 0.65f, 1.1f);
             SetBlinkWeight(0f);
+        }
+
+        public bool TriggerClickReaction()
+        {
+            if (!InitializeIfNeeded() || summonController == null ||
+                summonController.State != SummonState.AvatarActive ||
+                Time.unscaledTime - lastClickReactionTime < 0.8f)
+            {
+                return false;
+            }
+
+            if (currentBehaviour == AvatarIdleBehaviour.Wander && behaviourDuration > 0f)
+            {
+                roamingOffset = Vector3.Lerp(roamStartOffset, roamTargetOffset,
+                    Mathf.Clamp01(behaviourElapsed / behaviourDuration));
+            }
+
+            lastClickReactionTime = Time.unscaledTime;
+            clickReactionRemaining = 1.65f;
+            previousBehaviour = currentBehaviour;
+            currentBehaviour = AvatarIdleBehaviour.ShortHop;
+            behaviourElapsed = 0f;
+            behaviourDuration = clickReactionRemaining;
+            roamUsesRun = false;
+            return true;
         }
 
         private bool InitializeIfNeeded()
@@ -532,12 +561,28 @@ namespace AnimeAssistant.Presentation
         {
             if (state != SummonState.AvatarActive)
             {
+                clickReactionRemaining = 0f;
                 currentBehaviour = AvatarIdleBehaviour.Idle;
                 behaviourElapsed = 0f;
                 nextBehaviourDelay = 1.1f;
                 if (summonController != null)
                 {
                     summonController.SetActiveMotionYaw(0f);
+                }
+                return;
+            }
+
+            if (clickReactionRemaining > 0f)
+            {
+                clickReactionRemaining = Mathf.Max(0f, clickReactionRemaining - deltaSeconds);
+                behaviourElapsed += deltaSeconds;
+                currentBehaviour = AvatarIdleBehaviour.ShortHop;
+                if (clickReactionRemaining <= 0f)
+                {
+                    previousBehaviour = AvatarIdleBehaviour.ShortHop;
+                    currentBehaviour = AvatarIdleBehaviour.Idle;
+                    behaviourElapsed = 0f;
+                    nextBehaviourDelay = 1.2f;
                 }
                 return;
             }

@@ -11,16 +11,52 @@ namespace AnimeAssistant.Presentation
     public sealed class DesktopAudioController : MonoBehaviour
     {
         private const string AudioRoot = "Audio/DesktopAssistant/";
-        private static readonly string[] ChatterSubtitles =
+        private sealed class ChatterLine
         {
-            "Này, hôm nay bạn đã cố gắng nhiều rồi.\nNghỉ một chút cũng không sao đâu.",
-            "Đi chậm không có nghĩa là đi lùi.\nChỉ cần đừng bỏ cuộc nhé!",
-            "Một ngày đẹp không cần hoàn hảo.\nChỉ cần có điều khiến bạn mỉm cười.",
-            "Nếu thấy mệt, hãy hít một hơi thật sâu.\nMình vẫn ở đây mà.",
-            "Hôm nay chúng ta cùng thong thả cố gắng nhé!",
-            "Dù chỉ là một bước nhỏ, tiến về phía trước đã rất tuyệt rồi.",
-            "♪ La la... Mong hôm nay cũng là một ngày thật đẹp! ♪",
-            "Khi bạn cười, mình cũng thấy vui.\nVậy nên... cười lên nhé?"
+            public ChatterLine(string clipName, string language, string spokenText)
+            {
+                ClipName = clipName;
+                Language = language;
+                SpokenText = spokenText;
+            }
+
+            public string ClipName { get; }
+            public string Language { get; }
+            public string SpokenText { get; }
+        }
+
+        // Audio and displayed text deliberately share one language. This record is
+        // ready for future interactive dialogue without a separate subtitle index.
+        private static readonly ChatterLine[] ChatterLines =
+        {
+            new ChatterLine("voice_chatter_vi_1", "ja-JP",
+                "ねえ、今日もよく頑張ったね。少しくらい休んでもいいんだよ。"),
+            new ChatterLine("voice_chatter_vi_2", "ja-JP",
+                "ゆっくり歩くことは、後ろに下がることじゃないよ。諦めなければ大丈夫。"),
+            new ChatterLine("voice_chatter_vi_3", "ja-JP",
+                "完璧じゃなくてもいいの。笑顔になれることが一つあれば、それで素敵な一日だよ。"),
+            new ChatterLine("voice_chatter_vi_4", "ja-JP",
+                "疲れたら、ゆっくり深呼吸してね。私はここにいるよ。"),
+            new ChatterLine("voice_chatter_jp_1", "ja-JP", "今日も一緒に、のんびり頑張ろうね。"),
+            new ChatterLine("voice_chatter_jp_2", "ja-JP", "小さな一歩でも、前に進めば素敵だよ。"),
+            new ChatterLine("voice_chatter_jp_3", "ja-JP",
+                "らん、ららん。ふふっ、今日もいい日になりますように。"),
+            new ChatterLine("voice_chatter_jp_4", "ja-JP",
+                "あなたが笑うと、私も嬉しくなるの。だから、笑って？"),
+            new ChatterLine("voice_chatter_jp_5", "ja-JP",
+                "無理しすぎないでね。あなたのペースで大丈夫だよ。"),
+            new ChatterLine("voice_chatter_jp_6", "ja-JP", "窓の外を見て。空がとってもきれいだよ。"),
+            new ChatterLine("voice_chatter_jp_7", "ja-JP",
+                "集中できていて偉いね。あと少し、一緒に頑張ろう。"),
+            new ChatterLine("voice_chatter_jp_8", "ja-JP", "お水、ちゃんと飲んだ？休憩も忘れないでね。"),
+            new ChatterLine("voice_chatter_jp_9", "ja-JP",
+                "今日できたことを一つ、思い出してみよう。それだけでも十分だよ。"),
+            new ChatterLine("voice_chatter_jp_10", "ja-JP",
+                "ねえ、少しお話ししない？あなたのこと、もっと知りたいな。"),
+            new ChatterLine("voice_chatter_jp_11", "ja-JP",
+                "おかえり。会えて嬉しいよ。今日もそばにいるね。"),
+            new ChatterLine("voice_chatter_jp_12", "ja-JP",
+                "大丈夫。うまくいかない日だって、明日につながっているよ。")
         };
 
         private AudioSource interfaceSource;
@@ -39,11 +75,10 @@ namespace AnimeAssistant.Presentation
         private string activeSubtitle;
         private float subtitleStartedAt;
         private float subtitleHideAt;
-        private float subtitleCharactersPerSecond;
+        private float subtitleRevealSeconds;
         private Font bubbleFont;
-        private Texture2D bubbleTexture;
+        private Texture2D activeBubbleTexture;
         private Texture2D bubbleTailTexture;
-        private GUIStyle bubbleFrameStyle;
         private GUIStyle bubbleTextStyle;
 
         private AudioClip buttonPress;
@@ -58,9 +93,10 @@ namespace AnimeAssistant.Presentation
         private AudioClip[] jumpVoices;
         private AudioClip[] cheerVoices;
         private AudioClip[] chatterVoices;
+        private AudioClip avatarClickReaction;
 
         public static DesktopAudioController Instance { get; private set; }
-        public static int ChatterLineCount => ChatterSubtitles.Length;
+        public static int ChatterLineCount => ChatterLines.Length;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void CreateRuntimeAudio()
@@ -99,9 +135,9 @@ namespace AnimeAssistant.Presentation
             {
                 Instance = null;
             }
-            if (bubbleTexture != null)
+            if (activeBubbleTexture != null)
             {
-                Destroy(bubbleTexture);
+                Destroy(activeBubbleTexture);
             }
             if (bubbleTailTexture != null)
             {
@@ -155,6 +191,22 @@ namespace AnimeAssistant.Presentation
         {
             Play(interfaceSource, buttonPress, 0.82f);
             Play(interfaceSource, buttonElectric, 0.28f);
+        }
+
+        public void PlayAvatarClickReaction()
+        {
+            if (avatarClickReaction == null)
+            {
+                return;
+            }
+
+            voiceSource.Stop();
+            Play(voiceSource, avatarClickReaction, 0.92f, true);
+            ShowSpeechBubble("Ư… ư… đau em!", avatarClickReaction);
+            chatterCountdown = Random.Range(
+                DesktopExperienceConfig.Current.chatterMinSeconds,
+                DesktopExperienceConfig.Current.chatterMaxSeconds);
+            Debug.Log("[DesktopAudio] Vietnamese click reaction: Ư… ư… đau em!");
         }
 
         private void PlayStateTransition(SummonState state)
@@ -306,46 +358,61 @@ namespace AnimeAssistant.Presentation
             cloth = LoadMany("cloth_1", "cloth_2");
             jumpVoices = LoadMany("voice_jump_1", "voice_jump_2");
             cheerVoices = LoadMany("voice_cheer_1", "voice_cheer_2");
-            chatterVoices = LoadMany(
-                "voice_chatter_vi_1", "voice_chatter_vi_2",
-                "voice_chatter_vi_3", "voice_chatter_vi_4",
-                "voice_chatter_jp_1", "voice_chatter_jp_2",
-                "voice_chatter_jp_3", "voice_chatter_jp_4");
+            avatarClickReaction = Load("voice_click_hurt_vi");
+            var clipNames = new string[ChatterLines.Length];
+            for (var index = 0; index < ChatterLines.Length; index++)
+            {
+                clipNames[index] = ChatterLines[index].ClipName;
+            }
+            chatterVoices = LoadMany(clipNames);
         }
 
         private void ShowSpeechBubble(int chatterIndex, AudioClip clip)
         {
             if (!DesktopExperienceConfig.Current.speechBubbleEnabled ||
-                chatterIndex < 0 || chatterIndex >= ChatterSubtitles.Length)
+                chatterIndex < 0 || chatterIndex >= ChatterLines.Length)
             {
                 return;
             }
 
-            activeSubtitle = ChatterSubtitles[chatterIndex];
+            var line = ChatterLines[chatterIndex];
+            ShowSpeechBubble(line.SpokenText, clip);
+            Debug.Log($"[DesktopAudio] {line.Language}: {line.SpokenText}");
+        }
+
+        private void ShowSpeechBubble(string displayedText, AudioClip clip)
+        {
+            if (!DesktopExperienceConfig.Current.speechBubbleEnabled ||
+                string.IsNullOrWhiteSpace(displayedText))
+            {
+                return;
+            }
+
+            activeSubtitle = displayedText;
             subtitleStartedAt = Time.unscaledTime;
-            var revealSeconds = Mathf.Clamp(clip.length * 0.72f, 1.4f, 4.8f);
-            subtitleCharactersPerSecond = Mathf.Max(
-                DesktopExperienceConfig.Current.speechTextCharactersPerSecond,
-                activeSubtitle.Length / revealSeconds);
-            subtitleHideAt = subtitleStartedAt + Mathf.Max(clip.length + 1.25f, revealSeconds + 1f);
+            subtitleRevealSeconds = clip != null && clip.length > 0.1f
+                ? Mathf.Max(0.1f, clip.length * 0.92f)
+                : activeSubtitle.Length /
+                  DesktopExperienceConfig.Current.speechTextCharactersPerSecond;
+            subtitleHideAt = subtitleStartedAt + Mathf.Max(
+                clip != null ? clip.length + 1f : 0f, subtitleRevealSeconds + 0.8f);
+            if (activeBubbleTexture != null)
+            {
+                Destroy(activeBubbleTexture);
+            }
+            var cloudSeed = StableTextHash(activeSubtitle);
+            activeBubbleTexture = CreateSmoothBubbleTexture(320, 180, cloudSeed, 5);
         }
 
         private void CreateSpeechBubbleAssets()
         {
             bubbleFont = Font.CreateDynamicFontFromOSFont(
-                new[] { "Yu Gothic UI", "Meiryo UI", "Segoe UI" }, 22);
-            bubbleTexture = CreateRoundedBubbleTexture(64, 64, 15, 3);
-            bubbleTailTexture = CreateBubbleTailTexture(40, 28, 3);
-            bubbleFrameStyle = new GUIStyle
-            {
-                normal = { background = bubbleTexture },
-                border = new RectOffset(18, 18, 18, 18),
-                padding = new RectOffset(22, 22, 15, 17)
-            };
+                new[] { "Yu Gothic UI", "Meiryo UI", "Segoe UI" }, 16);
+            bubbleTailTexture = CreateBubbleTailTexture(28, 18, 3);
             bubbleTextStyle = new GUIStyle
             {
                 font = bubbleFont,
-                fontSize = 20,
+                fontSize = 12,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
                 wordWrap = true,
@@ -367,29 +434,43 @@ namespace AnimeAssistant.Presentation
 
             GUI.depth = -1000;
             var scale = config.speechBubbleScale;
-            var bubbleWidth = 360f * scale;
-            bubbleTextStyle.fontSize = Mathf.RoundToInt(20f * scale);
+            bubbleTextStyle.fontSize = Mathf.Max(6, Mathf.RoundToInt(12f * scale));
             var fullContent = new GUIContent(activeSubtitle);
-            var textHeight = bubbleTextStyle.CalcHeight(fullContent, bubbleWidth - 44f * scale);
-            var bubbleHeight = Mathf.Clamp(textHeight + 34f * scale, 82f * scale, 156f * scale);
-            var preferredY = head.y - bubbleHeight - 30f * scale;
+            var longestLineWidth = 0f;
+            foreach (var line in activeSubtitle.Split('\n'))
+            {
+                longestLineWidth = Mathf.Max(longestLineWidth,
+                    bubbleTextStyle.CalcSize(new GUIContent(line)).x);
+            }
+            var textWidth = Mathf.Clamp(longestLineWidth, 105f * scale, 220f * scale);
+            var horizontalPadding = 32f * scale;
+            var verticalPadding = 23f * scale;
+            var bubbleWidth = textWidth + horizontalPadding * 2f;
+            var textHeight = bubbleTextStyle.CalcHeight(fullContent, textWidth);
+            var bubbleHeight = textHeight + verticalPadding * 2f;
+            var preferredY = head.y - bubbleHeight - 20f * scale;
             var bubbleAbove = preferredY >= 12f;
-            var bubbleY = bubbleAbove ? preferredY : head.y + 30f * scale;
+            var bubbleY = bubbleAbove ? preferredY : head.y + 20f * scale;
             var bubbleX = Mathf.Clamp(head.x - bubbleWidth * 0.5f, 12f, Screen.width - bubbleWidth - 12f);
             bubbleY = Mathf.Clamp(bubbleY, 12f, Screen.height - bubbleHeight - 12f);
             var bubbleRect = new Rect(bubbleX, bubbleY, bubbleWidth, bubbleHeight);
+            var bubbleTexture = activeBubbleTexture;
+            if (bubbleTexture == null)
+            {
+                return;
+            }
 
             var previousColor = GUI.color;
             GUI.color = new Color(0f, 0f, 0f, 0.24f);
-            GUI.Box(new Rect(bubbleRect.x + 5f, bubbleRect.y + 6f,
-                bubbleRect.width, bubbleRect.height), GUIContent.none, bubbleFrameStyle);
+            GUI.DrawTexture(new Rect(bubbleRect.x + 3f * scale, bubbleRect.y + 4f * scale,
+                bubbleRect.width, bubbleRect.height), bubbleTexture, ScaleMode.StretchToFill, true);
             GUI.color = Color.white;
-            GUI.Box(bubbleRect, GUIContent.none, bubbleFrameStyle);
+            GUI.DrawTexture(bubbleRect, bubbleTexture, ScaleMode.StretchToFill, true);
 
-            var tailWidth = 40f * scale;
-            var tailHeight = 28f * scale;
+            var tailWidth = 28f * scale;
+            var tailHeight = 18f * scale;
             var tailX = Mathf.Clamp(head.x - tailWidth * 0.5f,
-                bubbleRect.x + 24f * scale, bubbleRect.xMax - 64f * scale);
+                bubbleRect.x + 20f * scale, bubbleRect.xMax - 48f * scale);
             var tailRect = bubbleAbove
                 ? new Rect(tailX, bubbleRect.yMax - 3f, tailWidth, tailHeight)
                 : new Rect(tailX, bubbleRect.y - tailHeight + 3f, tailWidth, tailHeight);
@@ -405,15 +486,16 @@ namespace AnimeAssistant.Presentation
 
             var elapsed = Mathf.Max(0f, Time.unscaledTime - subtitleStartedAt);
             var visibleCharacters = Mathf.Clamp(
-                Mathf.FloorToInt(elapsed * subtitleCharactersPerSecond), 0, activeSubtitle.Length);
+                Mathf.FloorToInt(activeSubtitle.Length *
+                    Mathf.Clamp01(elapsed / subtitleRevealSeconds)), 0, activeSubtitle.Length);
             var visibleText = activeSubtitle.Substring(0, visibleCharacters);
             if (visibleCharacters < activeSubtitle.Length && Mathf.FloorToInt(elapsed * 4f) % 2 == 0)
             {
                 visibleText += "▌";
             }
             var textRect = new Rect(
-                bubbleRect.x + 22f * scale, bubbleRect.y + 13f * scale,
-                bubbleRect.width - 44f * scale, bubbleRect.height - 28f * scale);
+                bubbleRect.x + horizontalPadding, bubbleRect.y + verticalPadding,
+                textWidth, textHeight);
             GUI.Label(textRect, visibleText, bubbleTextStyle);
             GUI.color = previousColor;
         }
@@ -462,11 +544,12 @@ namespace AnimeAssistant.Presentation
             return true;
         }
 
-        private static Texture2D CreateRoundedBubbleTexture(int width, int height, int radius, int border)
+        private static Texture2D CreateSmoothBubbleTexture(
+            int width, int height, int seed, int border)
         {
             var texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
             {
-                name = "Anime Speech Bubble",
+                name = $"Anime Smooth Speech Bubble {seed}",
                 filterMode = FilterMode.Bilinear,
                 wrapMode = TextureWrapMode.Clamp,
                 hideFlags = HideFlags.DontSave
@@ -476,8 +559,8 @@ namespace AnimeAssistant.Presentation
             {
                 for (var x = 0; x < width; x++)
                 {
-                    var outer = IsInsideRoundedRect(x, y, width, height, radius, 0);
-                    var inner = IsInsideRoundedRect(x, y, width, height, radius, border);
+                    var outer = IsInsideSmoothBubble(x, y, width, height, seed, 0);
+                    var inner = IsInsideSmoothBubble(x, y, width, height, seed, border);
                     pixels[y * width + x] = !outer
                         ? new Color32(0, 0, 0, 0)
                         : inner ? new Color32(255, 255, 255, 250) : new Color32(24, 20, 30, 255);
@@ -488,22 +571,44 @@ namespace AnimeAssistant.Presentation
             return texture;
         }
 
-        private static bool IsInsideRoundedRect(int x, int y, int width, int height, int radius, int inset)
+        private static bool IsInsideSmoothBubble(
+            int x, int y, int width, int height, int seed, int inset)
         {
-            var left = inset;
-            var right = width - 1 - inset;
-            var bottom = inset;
-            var top = height - 1 - inset;
-            if (x < left || x > right || y < bottom || y > top)
+            var centerX = width * 0.5f;
+            var centerY = height * 0.5f;
+            var radiusX = width * 0.455f - inset;
+            var radiusY = height * 0.405f - inset;
+            var normalizedX = (x - centerX) / radiusX;
+            var normalizedY = (y - centerY) / radiusY;
+            var angle = Mathf.Atan2(normalizedY, normalizedX);
+            var phaseA = Hash01(seed) * Mathf.PI * 2f;
+            var phaseB = Hash01(seed + 911) * Mathf.PI * 2f;
+            var softVariation = Mathf.Sin(angle * 3f + phaseA) * 0.018f +
+                                Mathf.Sin(angle * 5f + phaseB) * 0.009f;
+            var radialDistance = Mathf.Sqrt(
+                normalizedX * normalizedX + normalizedY * normalizedY);
+            return radialDistance <= 1f + softVariation;
+        }
+
+        private static int StableTextHash(string text)
+        {
+            unchecked
             {
-                return false;
+                var hash = 23;
+                for (var index = 0; index < text.Length; index++)
+                {
+                    hash = hash * 31 + text[index];
+                }
+                return hash;
             }
-            var cornerRadius = Mathf.Max(1, radius - inset);
-            var centerX = Mathf.Clamp(x, left + cornerRadius, right - cornerRadius);
-            var centerY = Mathf.Clamp(y, bottom + cornerRadius, top - cornerRadius);
-            var dx = x - centerX;
-            var dy = y - centerY;
-            return dx * dx + dy * dy <= cornerRadius * cornerRadius;
+        }
+
+        private static float Hash01(int value)
+        {
+            var hash = unchecked((uint)value * 747796405u + 2891336453u);
+            hash = ((hash >> ((int)(hash >> 28) + 4)) ^ hash) * 277803737u;
+            hash = (hash >> 22) ^ hash;
+            return (hash & 0x00ffffffu) / 16777215f;
         }
 
         private static Texture2D CreateBubbleTailTexture(int width, int height, int border)
