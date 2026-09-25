@@ -1,0 +1,4 @@
+https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-vi_VN-vais1000-medium.tar.bz2
+
+Upstream model:
+https://huggingface.co/rhasspy/piper-voices/tree/main/vi/vi_VN/vais1000/medium

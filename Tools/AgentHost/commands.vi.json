@@ -1,0 +1,24 @@
+{
+  "applications": [
+    { "id": "notepad", "aliases": [ "notepad", "ghi chú", "trình soạn thảo" ], "target": "notepad.exe", "reply": "Em mở Notepad nhé." },
+    { "id": "calculator", "aliases": [ "máy tính", "calculator", "calc" ], "target": "calc.exe", "reply": "Em mở máy tính nhé." },
+    { "id": "explorer", "aliases": [ "file explorer", "explorer", "quản lý tệp", "thư mục" ], "target": "explorer.exe", "reply": "Em mở File Explorer nhé." },
+    { "id": "settings", "aliases": [ "cài đặt", "settings" ], "target": "ms-settings:", "reply": "Em mở phần cài đặt nhé." },
+    { "id": "browser", "aliases": [ "trình duyệt", "browser", "google", "chrome", "edge" ], "target": "https://www.google.com", "reply": "Em mở trình duyệt nhé." },
+    { "id": "vscode", "aliases": [ "visual studio code", "v s code", "code" ], "target": "code", "reply": "Em mở Visual Studio Code nhé." },
+    { "id": "spotify", "aliases": [ "spotify" ], "target": "spotify:", "reply": "Em mở Spotify nhé." }
+  ],
+  "examples": [
+    { "intent": "volume_up", "phrases": [ "tăng âm lượng", "to tiếng lên", "âm thanh lớn lên" ], "reply": "Em tăng âm lượng nhé." },
+    { "intent": "volume_down", "phrases": [ "giảm âm lượng", "nhỏ tiếng xuống", "âm thanh nhỏ lại" ], "reply": "Em giảm âm lượng nhé." },
+    { "intent": "volume_mute", "phrases": [ "tắt âm", "tắt tiếng", "bật tắt âm thanh" ], "reply": "Em đổi trạng thái âm thanh nhé." },
+    { "intent": "media_play_pause", "phrases": [ "phát nhạc", "tạm dừng nhạc", "dừng nhạc", "tiếp tục phát" ], "reply": "Vâng, em điều khiển phát nhạc nhé." },
+    { "intent": "media_next", "phrases": [ "bài tiếp theo", "chuyển bài", "next bài hát" ], "reply": "Em chuyển sang bài tiếp theo nhé." },
+    { "intent": "media_previous", "phrases": [ "bài trước", "quay lại bài hát", "previous bài hát" ], "reply": "Em quay lại bài trước nhé." },
+    { "intent": "show_desktop", "phrases": [ "hiện desktop", "về màn hình chính", "thu nhỏ tất cả cửa sổ" ], "reply": "Em đưa anh về màn hình desktop nhé." },
+    { "intent": "window_switch", "phrases": [ "chuyển cửa sổ", "đổi cửa sổ", "cửa sổ tiếp theo" ], "reply": "Em chuyển sang cửa sổ tiếp theo nhé." },
+    { "intent": "window_minimize", "phrases": [ "thu nhỏ cửa sổ", "ẩn cửa sổ hiện tại" ], "reply": "Em thu nhỏ cửa sổ hiện tại nhé." },
+    { "intent": "window_maximize", "phrases": [ "phóng to cửa sổ", "mở rộng cửa sổ hiện tại" ], "reply": "Em phóng to cửa sổ hiện tại nhé." },
+    { "intent": "tell_time", "phrases": [ "mấy giờ rồi", "cho biết giờ", "bây giờ là mấy giờ" ], "reply": "" }
+  ]
+}

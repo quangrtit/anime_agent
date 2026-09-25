@@ -49,6 +49,38 @@ File ZIP để đưa lên Release được tạo tại:
 
 `Builds/AnimeAssistant-Windows-x64-Portable.zip`
 
+## Trợ lý giọng nói local
+
+Thiết lập lần đầu (tải ASR và giọng nữ tiếng Việt khoảng 125 MB rồi build sidecar Windows):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Tools\Agent\Setup-VoiceAgent.ps1
+```
+
+Sau đó gọi nhân vật ra khỏi cửa, chờ câu báo sẵn sàng, nói từ đánh thức
+`Airi` rồi nói lệnh. Agent không mở microphone khi nhân vật còn trong cửa.
+Ví dụ:
+
+- `Airi mở máy tính`
+- `Airi tìm kiếm thời tiết Đà Nẵng`
+- `Airi tăng âm lượng`
+- `Airi chuyển bài`
+- `Airi hiện desktop`
+- `Airi tạo thư mục Báo cáo`
+- `Airi tạo file Ghi chú chấm txt`
+- `Airi mở thư mục Airi`
+- `Airi mở thư mục Tải xuống`
+- `Airi chuyển cửa sổ`
+- `Airi thu nhỏ cửa sổ`
+
+File và thư mục do giọng nói tạo ra chỉ nằm trong `Desktop\Airi`. Agent không
+có lệnh xóa và không chấp nhận đường dẫn tùy ý bên ngoài khu vực này.
+
+Nhận dạng giọng nói chạy local bằng CPU (1 thread), không dùng VRAM và không gửi
+âm thanh ra internet. Agent chỉ thực thi các action trong danh sách cho phép tại
+`Tools/AgentHost/commands.vi.json`; nó không sinh hay chạy shell command tùy ý.
+Tùy chỉnh wake word, VAD và TTS trong `Tools/AgentHost/agent_settings.json`.
+
 ## Voice credit
 
 Japanese character chatter: `VOICEVOX:猫使アル`.

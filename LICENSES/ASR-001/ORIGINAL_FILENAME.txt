@@ -1,0 +1,1 @@
+sherpa-onnx-zipformer-vi-int8-2025-04-20.tar.bz2

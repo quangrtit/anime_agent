@@ -16,6 +16,18 @@ namespace AnimeAssistant.Presentation
 
         private void Awake()
         {
+            if (DesktopAudioController.Instance == null)
+            {
+                var assistantServices = new GameObject("Desktop Assistant Services");
+                DontDestroyOnLoad(assistantServices);
+                assistantServices.AddComponent<VoiceAgentBridge>();
+                assistantServices.AddComponent<DesktopAudioController>();
+            }
+            else if (FindFirstObjectByType<VoiceAgentBridge>() == null)
+            {
+                DesktopAudioController.Instance.gameObject.AddComponent<VoiceAgentBridge>();
+            }
+
             if (FindFirstObjectByType<RuntimeAvatarSlot>() == null)
             {
                 var avatarSlot = new GameObject("Runtime Avatar Slot");

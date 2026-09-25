@@ -63,6 +63,7 @@ namespace AnimeAssistant.Presentation
         private AudioSource worldSource;
         private AudioSource voiceSource;
         private AudioSource footstepSource;
+        private VoiceAgentBridge voiceAgentBridge;
         private GreyboxSummonController controller;
         private HumanoidAvatarMotion motion;
         private SummonState previousState = SummonState.DoorClosed;
@@ -103,11 +104,16 @@ namespace AnimeAssistant.Presentation
         {
             if (Instance != null)
             {
+                if (FindFirstObjectByType<VoiceAgentBridge>() == null)
+                {
+                    Instance.gameObject.AddComponent<VoiceAgentBridge>();
+                }
                 return;
             }
 
             var host = new GameObject("Desktop Assistant Audio");
             DontDestroyOnLoad(host);
+            host.AddComponent<VoiceAgentBridge>();
             host.AddComponent<DesktopAudioController>();
         }
 
@@ -124,6 +130,7 @@ namespace AnimeAssistant.Presentation
             worldSource = CreateSource("World Audio");
             voiceSource = CreateSource("Avatar Voice");
             footstepSource = CreateSource("Footsteps");
+            voiceAgentBridge = GetComponent<VoiceAgentBridge>();
             LoadClips();
             CreateSpeechBubbleAssets();
             FindSceneActors();
@@ -151,6 +158,12 @@ namespace AnimeAssistant.Presentation
 
         private void Update()
         {
+            if (voiceAgentBridge == null)
+            {
+                voiceAgentBridge = GetComponent<VoiceAgentBridge>();
+            }
+            voiceAgentBridge?.PumpEvents();
+
             if (controller == null || motion == null)
             {
                 FindSceneActors();
@@ -207,6 +220,19 @@ namespace AnimeAssistant.Presentation
                 DesktopExperienceConfig.Current.chatterMinSeconds,
                 DesktopExperienceConfig.Current.chatterMaxSeconds);
             Debug.Log("[DesktopAudio] Vietnamese click reaction: Ư… ư… đau em!");
+        }
+
+        /// <summary>Displays text spoken by the external local voice agent.</summary>
+        public void ShowAssistantMessage(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                return;
+            }
+
+            voiceSource.Stop();
+            ShowSpeechBubble(message, null);
+            chatterCountdown = Mathf.Max(4f, message.Length * 0.08f);
         }
 
         private void PlayStateTransition(SummonState state)

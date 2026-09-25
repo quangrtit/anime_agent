@@ -45,12 +45,16 @@ if ($process.ExitCode -ne 0) {
 
 $playerDirectory = Join-Path $repoRoot 'Builds\Windows'
 $runtimeContent = Join-Path $repoRoot 'RuntimeContent'
+$voiceAgentSetup = Join-Path $repoRoot 'Tools\Agent\Setup-VoiceAgent.ps1'
+if (Test-Path -LiteralPath $voiceAgentSetup) {
+    & $voiceAgentSetup
+}
 if (Test-Path -LiteralPath $runtimeContent) {
     Copy-Item -Path (Join-Path $runtimeContent '*') -Destination $playerDirectory -Recurse -Force
 }
 
 $thirdPartyDirectory = Join-Path $playerDirectory 'ThirdPartyLicenses'
-foreach ($assetId in @('CHAR-003', 'CHAR-004', 'ANIM-001', 'AUDIO-001', 'AUDIO-002', 'AUDIO-003', 'AUDIO-004')) {
+foreach ($assetId in @('CHAR-003', 'CHAR-004', 'ANIM-001', 'AUDIO-001', 'AUDIO-002', 'AUDIO-003', 'AUDIO-004', 'ASR-001', 'TTS-001')) {
     $licenseSource = Join-Path $repoRoot "LICENSES\$assetId"
     if (Test-Path -LiteralPath $licenseSource) {
         $licenseDestination = Join-Path $thirdPartyDirectory $assetId

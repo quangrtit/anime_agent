@@ -14,6 +14,7 @@
 .downloads/
 .packages/
 .tools/
+/RuntimeContent/Agent/
 
 # Files copied from the stock URP template but not used by this project
 Assets/TutorialInfo/
@@ -28,6 +29,7 @@ Assets/Readme.asset.meta
 *.csproj
 !Tools/DomainVerification/DomainSmoke.csproj
 !Tools/PortableLauncher/AnimeAssistant.PortableLauncher.csproj
+!Tools/AgentHost/AnimeAssistant.AgentHost.csproj
 *.sln
 *.suo
 *.user

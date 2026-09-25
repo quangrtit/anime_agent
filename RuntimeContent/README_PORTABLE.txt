@@ -8,6 +8,17 @@ Controls:
   Right-click the door or character: exit.
   Ctrl+Shift+Q: exit from anywhere.
 
+Voice agent:
+  First summon the character and wait for the ready message. The microphone is
+  inactive while the character is behind the door. Then say "Airi" followed
+  by a Vietnamese command, for example:
+  "Airi mo may tinh", "Airi tang am luong", or "Airi tim kiem thoi tiet".
+  Safe file commands create content only under Desktop\Airi. Examples:
+  "Airi tao thu muc Bao cao" and "Airi tao file Ghi chu cham txt".
+  Speech recognition runs locally on one CPU thread. Audio is not uploaded.
+  Windows microphone permission must be enabled. A Vietnamese Windows voice is
+  recommended for TTS; the installed default voice is used as fallback.
+
 Change character (no rebuild required):
   1. Close AnimeAssistant.
   2. Copy a Humanoid VRM 0.x/1.0 file into the Characters folder.
@@ -34,7 +45,7 @@ Unity-Chan notice:
 
 Deployment:
   Keep AnimeAssistant.exe, AnimeAssistant_Data, UnityPlayer.dll,
-  UnityCrashHandler64.exe, Characters, and Animations together.
+  UnityCrashHandler64.exe, Agent, Characters, and Animations together.
 
 Supported target:
   Windows 10/11 x64 with a DirectX 11-capable GPU.

@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "requireWakeWord": true,
+  "wakeWords": [ "airi", "ari", "agri", "ri", "ai ri", "a ri", "a i ri", "trợ lý", "anime" ],
+  "asrThreads": 1,
+  "minimumSpeechMilliseconds": 320,
+  "endSilenceMilliseconds": 700,
+  "maximumSpeechSeconds": 12,
+  "voiceThreshold": 0.012,
+  "ttsEnabled": true,
+  "ttsThreads": 1,
+  "ttsSpeed": 1.08,
+  "ttsModelDirectory": "Models/vits-piper-vi_VN-vais1000-medium",
+  "workspaceDirectory": "%USERPROFILE%/Desktop/Airi",
+  "modelDirectory": "Models/sherpa-onnx-zipformer-vi-int8-2025-04-20",
+  "commandsFile": "commands.vi.json"
+}
