@@ -79,6 +79,13 @@ namespace AnimeAssistant.Presentation
         private bool danceActive;
         private float danceBpm = 128f;
         private double danceBeat;
+        private bool flightActive;
+        private double flightElapsed;
+        private float flightDuration;
+        private Vector3 flightStartOffset;
+        private Vector3 flightTargetOffset;
+        private float flightEndScale = 1f;
+        private bool flightDocked;
         private uint randomState = 0x6D2B79F5u;
         private Vector3 roamingOffset;
         private Vector3 roamStartOffset;
@@ -106,6 +113,49 @@ namespace AnimeAssistant.Presentation
         public bool IsDancing => danceActive;
         public string CurrentDanceMoveName =>
             FabricatedDanceMoves.Moves[FabricatedDanceMoves.MoveForBeat(danceBeat)].Name;
+
+        public bool IsFlying => flightActive;
+
+        /// <summary>
+        /// Scripted "fly to a desktop icon" flight: she leaves her roaming spot,
+        /// travels to the requested offset while shrinking, and stays docked
+        /// until EndScriptedFlight. The walk cycle provides the mid-air motion.
+        /// </summary>
+        public void BeginScriptedFlight(Vector3 targetOffset, float seconds, float endScale)
+        {
+            if (currentBehaviour == AvatarIdleBehaviour.Wander && behaviourDuration > 0f)
+            {
+                roamingOffset = Vector3.Lerp(roamStartOffset, roamTargetOffset,
+                    Mathf.Clamp01(behaviourElapsed / behaviourDuration));
+            }
+
+            flightActive = true;
+            flightDocked = false;
+            flightElapsed = 0f;
+            flightDuration = Mathf.Max(0.2f, seconds);
+            flightStartOffset = roamingOffset;
+            flightTargetOffset = targetOffset;
+            flightEndScale = Mathf.Clamp(endScale, 0.05f, 1f);
+            behaviourElapsed = 0f;
+            behaviourDuration = 0f;
+            currentBehaviour = AvatarIdleBehaviour.Idle;
+            roamUsesRun = false;
+        }
+
+        public void EndScriptedFlight()
+        {
+            if (!flightActive)
+            {
+                return;
+            }
+
+            flightActive = false;
+            flightDocked = false;
+            summonController?.SetActiveMotionScale(1f);
+            currentBehaviour = AvatarIdleBehaviour.Idle;
+            behaviourElapsed = 0f;
+            nextBehaviourDelay = 0.7f;
+        }
 
         /// <summary>Starts the fabricated beat-synced dance (music-reactive or manual demo).</summary>
         public void BeginBeatDance(float bpm)
@@ -219,9 +269,22 @@ namespace AnimeAssistant.Presentation
             var celebrating = state == SummonState.AvatarActive && activeElapsed < 2.4f &&
                               !IsClickReactionActive;
             var phase = Time.unscaledTime * (locomoting ? 4.6f : 1.15f);
-            var dancing = danceActive && state == SummonState.AvatarActive &&
+            var flightUnderway = flightActive && state == SummonState.AvatarActive &&
+                                 !IsClickReactionActive && activeElapsed >= 2.4f;
+            if (flightUnderway)
+            {
+                flightElapsed += Time.unscaledDeltaTime;
+                ApplyFlightPose();
+            }
+
+            var dancing = danceActive && !flightUnderway && state == SummonState.AvatarActive &&
                           !IsClickReactionActive && activeElapsed >= 2.4f;
             if (dancing)
+            {
+                danceBeat += Time.unscaledDeltaTime * danceBpm / 60.0;
+                ApplyDancePose();
+            }
+            else if (nativeGraph.IsValid())
             {
                 danceBeat += Time.unscaledDeltaTime * danceBpm / 60.0;
                 ApplyDancePose();
@@ -466,7 +529,8 @@ namespace AnimeAssistant.Presentation
 
         private AnimationClip ResolveNativeClip(SummonState state, bool celebrating)
         {
-            if (state == SummonState.AvatarExiting || state == SummonState.AvatarReturning ||
+            if (flightActive ||
+                state == SummonState.AvatarExiting || state == SummonState.AvatarReturning ||
                 state == SummonState.AvatarEntering || currentBehaviour == AvatarIdleBehaviour.Wander)
             {
                 if (currentBehaviour == AvatarIdleBehaviour.Wander && roamUsesRun)
@@ -501,7 +565,8 @@ namespace AnimeAssistant.Presentation
 
         private string ResolveExternalClip(SummonState state, bool celebrating)
         {
-            if (state == SummonState.AvatarExiting || state == SummonState.AvatarReturning ||
+            if (flightActive ||
+                state == SummonState.AvatarExiting || state == SummonState.AvatarReturning ||
                 state == SummonState.AvatarEntering)
             {
                 return "Walk_Formal_Loop";
@@ -694,12 +759,46 @@ namespace AnimeAssistant.Presentation
             poseHandler.SetHumanPose(ref pose);
         }
 
+        /// <summary>Travels toward the icon offset while shrinking, then docks.</summary>
+        private void ApplyFlightPose()
+        {
+            if (summonController == null)
+            {
+                return;
+            }
+
+            var t = Mathf.Clamp01((float)(flightElapsed / flightDuration));
+            var eased = t * t * (3f - 2f * t);
+            var offset = Vector3.Lerp(flightStartOffset, flightTargetOffset, eased);
+            if (t >= 1f)
+            {
+                flightDocked = true;
+                // Gentle hover while docked on the icon.
+                offset += Vector3.up * (Mathf.Sin(Time.unscaledTime * 3.2f) * 0.008f);
+            }
+
+            summonController.SetActiveMotionOffset(offset);
+            summonController.SetActiveMotionScale(Mathf.Lerp(1f, flightEndScale, eased));
+
+            var direction = flightTargetOffset - flightStartOffset;
+            direction.y = 0f;
+            var travelYaw = direction.sqrMagnitude > 0.0001f
+                ? Mathf.Atan2(-direction.x, -direction.z) * Mathf.Rad2Deg * Mathf.Sin(t * Mathf.PI)
+                : 0f;
+            summonController.SetActiveMotionYaw(travelYaw);
+        }
+
         private void UpdateBehaviourScheduler(SummonState state, float deltaSeconds)
         {
             if (state != SummonState.AvatarActive)
             {
                 clickReactionRemaining = 0f;
                 danceActive = false;
+                if (flightActive)
+                {
+                    flightActive = false;
+                    summonController?.SetActiveMotionScale(1f);
+                }
                 currentBehaviour = AvatarIdleBehaviour.Idle;
                 behaviourElapsed = 0f;
                 nextBehaviourDelay = 1.1f;
@@ -725,9 +824,9 @@ namespace AnimeAssistant.Presentation
                 return;
             }
 
-            if (danceActive)
+            if (danceActive || flightActive)
             {
-                // The dance owns the body; freeze the idle scheduler in place.
+                // Dance and flight own the body; freeze the idle scheduler.
                 if (currentBehaviour == AvatarIdleBehaviour.Wander && behaviourDuration > 0f)
                 {
                     roamingOffset = Vector3.Lerp(roamStartOffset, roamTargetOffset,
@@ -862,6 +961,12 @@ namespace AnimeAssistant.Presentation
             {
                 summonController.SetActiveMotionOffset(Vector3.zero);
                 summonController.SetActiveMotionYaw(0f);
+                return;
+            }
+
+            if (flightActive)
+            {
+                // ApplyFlightPose already drove offset/scale/yaw this frame.
                 return;
             }
 

@@ -22,6 +22,9 @@ namespace AnimeAssistant.Presentation
         public bool danceEnabled = true;
         public bool isekaiGiftsEnabled = true;
         public bool midnightKnocksEnabled = true;
+        public bool wallpaperWorldEnabled = true;
+        public bool iconGlassEnabled = true;
+        public int desktopIconPixelSize = 96;
         public float jealousyCooldownMinutes = 12f;
         public float snoopingCooldownMinutes = 45f;
         public int waterReminderMinutes = 90;
@@ -38,6 +41,7 @@ namespace AnimeAssistant.Presentation
             snoopingCooldownMinutes = Mathf.Clamp(snoopingCooldownMinutes, 5f, 720f);
             waterReminderMinutes = Mathf.Clamp(waterReminderMinutes, 15, 480);
             returnHomeAfterDays = Mathf.Clamp(returnHomeAfterDays, 2, 365);
+            desktopIconPixelSize = Mathf.Clamp(desktopIconPixelSize, 32, 256);
             forceGift = forceGift == null ? "" : forceGift.Trim().ToLowerInvariant();
         }
     }

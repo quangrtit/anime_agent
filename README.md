@@ -93,7 +93,8 @@ Ngoài ra: sau khung cửa là "thế giới bên kia" đổi theo mùa, cô ấ
 mỗi ngày (ngày đặc biệt có file PNG thật trong `Desktop\Airi\`), tỏ tình ở mốc
 100 ngày, tiếng gõ cửa bí ẩn lúc nửa đêm, và **nhảy theo nhạc đang phát trên
 máy** (WASAPI loopback, không micro) kèm badge live mini — demo được không cần
-nhạc bằng `Alt+N`.
+nhạc bằng `Alt+N`. Khi cô ấy đang ra, desktop icon được phủ một **lớp kính**:
+double-click icon là cô ấy bay vào, đậu 1 giây rồi app mới mở.
 
 Điều khiển nhanh:
 

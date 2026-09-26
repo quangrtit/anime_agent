@@ -125,6 +125,10 @@ Mode học thi/quay deadline — cô ấy kéo ghế ngồi cạnh, nói chuyệ
 
 ## 6. Va chạm "2D ↔ 3D" (meme & kịch tính)
 
+> **Đã làm thêm (kịch bản ✅):** lớp kính icon — glass pane phủ vùng icon, chặn double-click,
+> nhân vật bay vào icon (0.75× icon, dock 1s) rồi mới forward cú click về Windows.
+
+
 ### 🔶 Chuunibyou mode
 Cả desktop biến thành "phong ấn" — icon được đánh "con dấu", nhân vật chử chú tay, portal đổi thành cổng địa ngục tím. Không tác dụng gì ngoài ngầu — và đó chính là điểm bán hàng.
 

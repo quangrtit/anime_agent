@@ -40,6 +40,58 @@ namespace AnimeAssistant.Presentation
         }
 
         private ParticleSystem ambientPetals;
+        private Material petalMaterial;
+        private Texture2D petalTexture;
+
+        /// <summary>Petal-shaped alpha mask (tinted per season via startColor).</summary>
+        private Material EnsurePetalMaterial()
+        {
+            if (petalMaterial == null && particleMaterial != null)
+            {
+                petalTexture = CreatePetalTexture();
+                petalMaterial = new Material(particleMaterial) { name = "Runtime Petal Material" };
+                petalMaterial.SetTexture("_BaseMap", petalTexture);
+            }
+            return petalMaterial;
+        }
+
+        private static Texture2D CreatePetalTexture()
+        {
+            const int width = 40;
+            const int height = 56;
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                name = "Runtime Petal Sprite",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            var pixels = new Color32[width * height];
+            for (var y = 0; y < height; y++)
+            {
+                for (var x = 0; x < width; x++)
+                {
+                    var u = ((x + 0.5f) / width * 2f - 1f) * 1.35f;
+                    var v = ((y + 0.5f) / height * 2f - 1f) * 1.35f;
+                    // An upside-down heart outline reads as a petal silhouette.
+                    var heartX = u / 0.72f;
+                    var heartY = -v / 0.72f - 0.1f;
+                    var term = heartX * heartX + heartY * heartY - 1f;
+                    var silhouette = term * term * term - heartX * heartX * heartY * heartY * heartY;
+                    var inside = silhouette <= 0f;
+                    var edge = Mathf.Clamp01(1f - Mathf.Max(0f, silhouette) * 6f);
+                    var alpha = inside ? Mathf.Clamp01(edge + 0.35f) : 0f;
+                    var center = Mathf.Clamp01(1f - Mathf.Sqrt(u * u + v * v) / 1.3f);
+                    var brightness = Mathf.Lerp(0.82f, 1f, center);
+                    pixels[y * width + x] = new Color32(
+                        (byte)(255 * brightness), (byte)(244 * brightness),
+                        (byte)(248 * brightness), (byte)(alpha * 235));
+                }
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return texture;
+        }
 
         /// <summary>
         /// Seasonal ambient particles (cherry blossom, tanabata, new year)
@@ -62,6 +114,8 @@ namespace AnimeAssistant.Presentation
 
                 ambientPetals = CreateSystem("Seasonal Ambient Petals", camera.transform);
                 ambientPetals.transform.localPosition = new Vector3(0f, 5.5f, 7.5f);
+                var petalRenderer = ambientPetals.GetComponent<ParticleSystemRenderer>();
+                petalRenderer.sharedMaterial = EnsurePetalMaterial() ?? particleMaterial;
                 var main = ambientPetals.main;
                 main.startLifetime = new ParticleSystem.MinMaxCurve(4.5f, 7f);
                 main.startSpeed = new ParticleSystem.MinMaxCurve(0.25f, 0.6f);
@@ -174,6 +228,14 @@ namespace AnimeAssistant.Presentation
             if (particleTexture != null)
             {
                 Destroy(particleTexture);
+            }
+            if (petalMaterial != null)
+            {
+                Destroy(petalMaterial);
+            }
+            if (petalTexture != null)
+            {
+                Destroy(petalTexture);
             }
         }
 

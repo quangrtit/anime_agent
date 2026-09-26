@@ -37,6 +37,8 @@ namespace AnimeAssistant.Presentation
         private SummonOrchestrator orchestrator;
         private Vector3 activeMotionOffset;
         private Quaternion activeMotionRotation = Quaternion.identity;
+        private Vector3 avatarBaseScale = Vector3.one;
+        private float activeMotionScale = 1f;
         private Vector3 returnStartPosition;
         private Quaternion returnStartRotation = Quaternion.identity;
         private GameObject doorArt;
@@ -70,6 +72,10 @@ namespace AnimeAssistant.Presentation
             avatarHiddenPosition = hiddenPosition;
             avatarThresholdPosition = thresholdPosition;
             avatarActivePosition = activePosition;
+            if (avatar != null && activeMotionScale == 1f)
+            {
+                avatarBaseScale = avatar.localScale;
+            }
             if (orchestrator != null && orchestrator.State == SummonState.DoorClosed)
             {
                 ApplyClosedPose();
@@ -111,6 +117,15 @@ namespace AnimeAssistant.Presentation
         public void SetActiveMotionYaw(float yawDegrees)
         {
             activeMotionRotation = Quaternion.Euler(0f, Mathf.Clamp(yawDegrees, -180f, 180f), 0f);
+        }
+
+        /// <summary>
+        /// Extra scale multiplier for scripted moments (shrinking onto a desktop
+        /// icon). 1 restores the composed size.
+        /// </summary>
+        public void SetActiveMotionScale(float multiplier)
+        {
+            activeMotionScale = Mathf.Clamp(multiplier, 0.02f, 1f);
         }
 
         private void Awake()
@@ -284,6 +299,7 @@ namespace AnimeAssistant.Presentation
                     SetAvatarPresentation(true);
                     avatar.position = avatarActivePosition + activeMotionOffset;
                     avatar.rotation = activeMotionRotation;
+                    avatar.localScale = avatarBaseScale * activeMotionScale;
                     UpdateDoorCollapse(elapsed);
                     break;
 
@@ -371,6 +387,11 @@ namespace AnimeAssistant.Presentation
             SetAvatarPresentation(false);
             activeMotionOffset = Vector3.zero;
             activeMotionRotation = Quaternion.identity;
+            activeMotionScale = 1f;
+            if (avatar != null)
+            {
+                avatar.localScale = avatarBaseScale;
+            }
             doorPivot.localRotation = doorClosed;
             if (secondaryDoorPivot != null)
             {

@@ -179,6 +179,20 @@ namespace AnimeAssistant.Presentation
                 "Dừng rồi! M-may quá... chân em mỏn đấy! Đừng có cười!",
                 "Nhạc tắt rồi... nhưng điệu nhảy trong lòng em vẫn cứ tiếp tục~",
                 "...Hết. Ngồi."
+            },
+            ["wallpaper"] = new[]
+            {
+                "Đêm qua hình nền là thế giới em đó~ Anh thấy nhà em đẹp không?",
+                "Đ-đêm qua hình nền gì đó! Chỉ là em để cửa quên khóa thôi! Nhà em đẹp chứ?!",
+                "Anh đã thấy thế giới của em rồi... qua hình nền. Lâu lâu ghé thăm em nhé?",
+                "...Hình nền tối qua. Nhà em. Đẹp chứ."
+            },
+            ["icon_flight"] = new[]
+            {
+                "Để em bay đến mở giúp anh nha~",
+                "T-tự anh mở đi! ...Thôi được, để em bay qua mở cho!",
+                "Fufu~ để em chồm qua đó trước... app chỉ được mở sau lưng em thôi nhé~",
+                "...Chờ. Em bay. Rồi mở."
             }
         };
 

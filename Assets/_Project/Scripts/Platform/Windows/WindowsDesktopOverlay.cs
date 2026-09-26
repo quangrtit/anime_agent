@@ -616,9 +616,15 @@ namespace AnimeAssistant.Platform.Windows
                            doorRegion.Contains(new Vector2Int(cursor.X, cursor.Y));
             var overAvatar = TryProjectBounds(avatarRenderers, windowRect, out var avatarRegion) &&
                              avatarRegion.Contains(new Vector2Int(cursor.X, cursor.Y));
+            // The icon glass pane is part of the interactive surface: clicks
+            // there land on this window and the companion director holds them
+            // until her flight ritual replays the launch.
+            var glassRegion = CompanionDirector.Instance?.IconGlassPhysical;
+            var overGlass = glassRegion.HasValue &&
+                            glassRegion.Value.Contains(new Vector2Int(cursor.X, cursor.Y));
             cursorOverDoor = overDoor;
             cursorOverAvatar = overAvatar;
-            cursorOverInteractiveContent = overDoor || overAvatar;
+            cursorOverInteractiveContent = overDoor || overAvatar || overGlass;
             if (TryUnion(doorRegion, avatarRegion, out var union))
             {
                 SetInteractiveRegion(union);
@@ -647,7 +653,7 @@ namespace AnimeAssistant.Platform.Windows
                 summonVfx?.PlayAvatarClickFireworks();
             }
             if (hotkeyPressed || (exitHotkeyDown && !exitHotkeyWasDown) ||
-                (rightMouseDown && !rightMouseWasDown && cursorOverInteractiveContent))
+                (rightMouseDown && !rightMouseWasDown && (cursorOverDoor || cursorOverAvatar)))
             {
                 Application.Quit();
             }

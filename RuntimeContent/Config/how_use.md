@@ -91,3 +91,12 @@ Phản ứng tự động:
   Side Step. Motion data thật (Lucky Star, Renai Circulation...) có thể thay
   bảng procedural này về sau.
 - **Lời tỏ tình**: chỉ xảy ra ở ngày tròn 100 ngày, kèm pháo hoa.
+- **Lớp kính trên icon desktop** (`iconGlassEnabled`, bật mặc định): khi nhân
+  vật đang ra, một tấm kính mờ phủ đúng vùng icon. Double-click vào icon:
+  click rơi vào lớp kính → nhân vật bay đến, thu nhỏ còn 0.75× icon, đậu 1
+  giây → lớp kính gửi lại cú double-click cho Windows → app mới mở. Single
+  click vẫn được chuyển qua để chọn icon như thường. Tắt app giữa chừng thì
+  kính biến mất, desktop về bình thường.
+- **Ảnh hiệu ứng**: trời portal + wallpaper thế giới bên kia dùng ảnh thật
+  trong `RuntimeContent/Effects/` (theo mùa/lễ hội); xoá ảnh nào sẽ tự fallback
+  về nền procedural. License ghi trong `Effects/CREDITS.md`.

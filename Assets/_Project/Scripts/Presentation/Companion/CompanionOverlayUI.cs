@@ -41,11 +41,77 @@ namespace AnimeAssistant.Presentation
 
             EnsureStyles();
             GUI.depth = -900;
+            DrawIconGlass(director);
             DrawPomodoroChip(director);
             DrawReminderBoard(director);
             DrawLiveBadge(director);
             DrawDiaryBook(director);
             DrawYandereVignette(director);
+        }
+
+        /// <summary>
+        /// The "glass pane" over the desktop icons: a translucent sheet that
+        /// tells the user clicks here are held by the companion; hovering an
+        /// icon lights up its cell and label.
+        /// </summary>
+        private static void DrawIconGlass(CompanionDirector director)
+        {
+            var glass = director.IconGlassPhysical;
+            if (!glass.HasValue)
+            {
+                return;
+            }
+
+            var rect = PhysicalToGui(glass.Value);
+            // Pane body: two soft layers so it reads as glass, not a grey box.
+            DrawPanel(rect, new Color(0.65f, 0.82f, 1f, 0.05f));
+            DrawPanel(new Rect(rect.x + rect.width * 0.25f, rect.y, rect.width * 0.75f, rect.height),
+                new Color(1f, 1f, 1f, 0.03f));
+            // Border.
+            DrawPanel(new Rect(rect.x, rect.y, rect.width, 2f), new Color(1f, 1f, 1f, 0.30f));
+            DrawPanel(new Rect(rect.x, rect.yMax - 2f, rect.width, 2f), new Color(1f, 1f, 1f, 0.18f));
+            DrawPanel(new Rect(rect.x, rect.y, 2f, rect.height), new Color(1f, 1f, 1f, 0.22f));
+            DrawPanel(new Rect(rect.xMax - 2f, rect.y, 2f, rect.height), new Color(1f, 1f, 1f, 0.12f));
+            // Diagonal shine.
+            DrawPanel(new Rect(rect.x + rect.width * 0.16f, rect.y, rect.width * 0.035f, rect.height),
+                new Color(1f, 1f, 1f, 0.06f));
+            DrawPanel(new Rect(rect.x + rect.width * 0.24f, rect.y, rect.width * 0.012f, rect.height),
+                new Color(1f, 1f, 1f, 0.05f));
+            // Corner caption.
+            var captionStyle = new GUIStyle(bodyStyle)
+            {
+                fontSize = 10,
+                normal = { textColor = new Color(0.9f, 0.96f, 1f, 0.55f) }
+            };
+            GUI.Label(new Rect(rect.x + 8f, rect.y + 4f, rect.width - 16f, 18f),
+                "Đang qua lớp kính — Airi sẽ mở giúp anh", captionStyle);
+
+            // Hover highlight + label chip.
+            if (director.IconHoverActive)
+            {
+                var hover = PhysicalToGui(director.IconHoverPhysical);
+                DrawPanel(hover, new Color(1f, 1f, 1f, 0.12f));
+                DrawPanel(new Rect(hover.x, hover.y, hover.width, 2f), new Color(1f, 1f, 1f, 0.5f));
+                if (!string.IsNullOrEmpty(director.IconHoverLabel))
+                {
+                    var chipStyle = new GUIStyle(bodyStyle)
+                    {
+                        fontSize = 11,
+                        alignment = TextAnchor.MiddleCenter,
+                        normal = { textColor = new Color(0.95f, 0.98f, 1f, 0.95f) }
+                    };
+                    var chipRect = new Rect(hover.x - 10f, hover.yMax + 4f, hover.width + 20f, 24f);
+                    DrawPanel(chipRect, new Color(0.08f, 0.1f, 0.16f, 0.82f));
+                    GUI.Label(chipRect, director.IconHoverLabel, chipStyle);
+                }
+            }
+        }
+
+        /// <summary>Physical screen coords → IMGUI space (primary work area at origin).</summary>
+        private static Rect PhysicalToGui(RectInt physical)
+        {
+            return new Rect(physical.x, Screen.height - physical.y - physical.height,
+                physical.width, physical.height);
         }
 
         private static void EnsureStyles()

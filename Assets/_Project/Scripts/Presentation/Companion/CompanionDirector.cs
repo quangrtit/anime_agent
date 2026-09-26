@@ -154,6 +154,11 @@ namespace AnimeAssistant.Presentation
                 {
                     OnDismissed();
                 }
+                else if (state == SummonState.DoorClosed && previousState == SummonState.DoorClosing)
+                {
+                    // She just stepped home — the door stays open onto her world.
+                    TryWallpaperWorld();
+                }
                 previousState = state;
             }
 
@@ -199,11 +204,27 @@ namespace AnimeAssistant.Presentation
         {
             summonStartReal = Time.realtimeSinceStartupAsDouble;
             activeMinuteAccumulator = 0f;
+            summonedThisSession = true;
             festivalToday = CompanionFestival.ForDate(DateTime.Today);
             EnsureFestivalPetals();
 
             var nowUtc = DateTime.UtcNow;
             var daysSinceLastSeen = profile.DaysSinceLastSeen(nowUtc);
+
+            // She just came back from having the desktop as her world's window.
+            if (wallpaperSwapped && settings.wallpaperWorldEnabled)
+            {
+                wallpaperSwapped = false;
+                DesktopWallpaperWorld.RestoreOriginal();
+            }
+            if (wallpaperLinePending)
+            {
+                wallpaperLinePending = false;
+                EnqueueSay("wallpaper");
+                lastSummonReal = summonStartReal;
+                return; // the wallpaper line replaces the normal greeting once
+            }
+
             if (settings.returnHomeAfterDays <= daysSinceLastSeen && profile.ShouldReturnHome(nowUtc))
             {
                 TriggerReturnHome(daysSinceLastSeen);
@@ -270,6 +291,22 @@ namespace AnimeAssistant.Presentation
                 Destroy(giftIcon);
                 giftIcon = null;
             }
+            if (ritualActive || ritualVerifyActive)
+            {
+                // Dismissed mid-ritual: release the held click so the app still opens.
+                if (ritualVerifyActive)
+                {
+                    iconProbe.ForwardClick(ritualIcon.ClientX, ritualIcon.ClientY, true);
+                }
+                ritualActive = false;
+                ritualVerifyActive = false;
+                ritualIcon = default;
+                preLaunchProcessIds = null;
+                if (motion != null && motion.IsFlying)
+                {
+                    motion.EndScriptedFlight();
+                }
+            }
             SaveProfileNow();
         }
 
@@ -292,6 +329,10 @@ namespace AnimeAssistant.Presentation
             UpdateDance(delta);
             UpdateMidnightKnock(delta);
             UpdateGiftIcon();
+            if (motion != null)
+            {
+                UpdateIconGlass(delta);
+            }
         }
 
         private void UpdatePomodoro()
@@ -590,6 +631,439 @@ namespace AnimeAssistant.Presentation
 
             // Billboard the gift toward the viewer.
             giftIcon.transform.rotation = Camera.main.transform.rotation;
+        }
+
+        private void TryWallpaperWorld()
+        {
+            if (!settings.wallpaperWorldEnabled || !summonedThisSession || wallpaperSwapped)
+            {
+                return;
+            }
+
+            if (DesktopWallpaperWorld.SwapToWorld(
+                    IsekaiPortalBackdrop.SkyPalette.For(DateTime.Today,
+                        festivalToday?.Petals ?? FestivalPetals.None)))
+            {
+                wallpaperSwapped = true;
+                wallpaperLinePending = true; // told as the next summon's greeting
+                profile.AddDiary(DateTime.Now, "Để cửa mở về thế giới em trên hình nền của anh.");
+                SaveProfileSoon();
+            }
+        }
+
+        private bool wallpaperSwapped;
+        private bool wallpaperLinePending;
+        private bool summonedThisSession;
+
+        // Desktop icon glass state. The pane is only "solid" where icons sit;
+        // clicks there land on our window, are held, and are handed back to the
+        // desktop ListView after the companion finishes her flight.
+        private const float IconFlightSeconds = 0.8f;
+        private const float IconDockSeconds = 1.0f;
+        private const double IconDoubleClickWindow = 0.6;
+        private const int IconDoubleClickMaxPixels = 14;
+        private const double SingleClickForwardDelay = 0.28;
+        private const int IconCellWidth = 80;
+        private const int IconCellHeight = 100;
+        private const int VkLButton = 0x01;
+        private readonly DesktopIconProbe iconProbe = new();
+        private readonly List<DesktopIconProbe.DesktopIconInfo> cachedIcons =
+            new List<DesktopIconProbe.DesktopIconInfo>();
+        private bool glassBuilt;
+        private float glassRebuildCountdown;
+        private RectInt glassPhysical;
+        private bool iconClickWasDown;
+        private double lastGlassClickReal = double.NegativeInfinity;
+        private int lastGlassClickX;
+        private int lastGlassClickY;
+        private double pendingSingleClickReal = double.NegativeInfinity;
+        private int pendingSingleClickClientX;
+        private int pendingSingleClickClientY;
+        private bool ritualActive;
+        private double ritualStartReal;
+        private double replayGuardUntil;
+        private DesktopIconProbe.DesktopIconInfo ritualIcon;
+        private HashSet<int> preLaunchProcessIds;
+        private bool ritualVerifyActive;
+        private double ritualVerifyStartReal;
+
+        /// <summary>Physical-screen rect that receives clicks for the ritual, or null.</summary>
+        public RectInt? IconGlassPhysical
+        {
+            get
+            {
+                if (!settings.enabled || !settings.iconGlassEnabled || !glassBuilt ||
+                    controller == null || controller.State != SummonState.AvatarActive ||
+                    motion == null || motion.IsFlying)
+                {
+                    return null;
+                }
+                return glassPhysical;
+            }
+        }
+
+        internal string IconHoverLabel = "";
+        internal RectInt IconHoverPhysical;
+        internal bool IconHoverActive;
+
+        private void UpdateIconGlass(float delta)
+        {
+            if (!settings.iconGlassEnabled)
+            {
+                glassBuilt = false;
+                return;
+            }
+
+            glassRebuildCountdown -= delta;
+            if (!glassBuilt || glassRebuildCountdown <= 0f)
+            {
+                glassRebuildCountdown = 15f;
+                BuildIconGlass();
+            }
+
+            if (ritualVerifyActive)
+            {
+                VerifyIconLaunch();
+                return;
+            }
+
+            if (ritualActive)
+            {
+                var elapsed = Time.realtimeSinceStartupAsDouble - ritualStartReal;
+                if (elapsed > IconFlightSeconds + IconDockSeconds)
+                {
+                    FinishIconRitual();
+                }
+                return;
+            }
+
+            UpdateHoverHighlight();
+            UpdatePendingSingleClick();
+            PollGlassClicks();
+        }
+
+        private void BuildIconGlass()
+        {
+            if (!iconProbe.TryScrapeIcons(cachedIcons))
+            {
+                glassBuilt = false;
+                return;
+            }
+
+            var minX = int.MaxValue;
+            var minY = int.MaxValue;
+            var maxX = int.MinValue;
+            var maxY = int.MinValue;
+            foreach (var icon in cachedIcons)
+            {
+                minX = Math.Min(minX, icon.ScreenX);
+                minY = Math.Min(minY, icon.ScreenY);
+                maxX = Math.Max(maxX, icon.ScreenX + IconCellWidth);
+                maxY = Math.Max(maxY, icon.ScreenY + IconCellHeight);
+            }
+
+            const int padding = 12;
+            glassPhysical = new RectInt(
+                Math.Max(0, minX - padding),
+                Math.Max(0, minY - padding),
+                maxX - minX + padding * 2,
+                maxY - minY + padding * 2);
+            glassBuilt = true;
+            Debug.Log($"[Companion] Icon glass pane active over {cachedIcons.Count} icons " +
+                      $"({glassPhysical.width}x{glassPhysical.height} at {glassPhysical.x},{glassPhysical.y}).");
+        }
+
+        private void UpdateHoverHighlight()
+        {
+            IconHoverActive = false;
+            IconHoverLabel = "";
+            if (ritualActive || !DesktopIconProbe.TryGetCursorPos(out var x, out var y) ||
+                !glassPhysical.Contains(new Vector2Int(x, y)))
+            {
+                return;
+            }
+
+            if (TryGetCachedIconAt(x, y, out var icon))
+            {
+                IconHoverActive = true;
+                IconHoverLabel = icon.Label;
+                IconHoverPhysical = new RectInt(icon.ScreenX - 6, icon.ScreenY - 6,
+                    IconCellWidth, IconCellHeight);
+            }
+        }
+
+        private bool TryGetCachedIconAt(int physX, int physY, out DesktopIconProbe.DesktopIconInfo icon)
+        {
+            var best = default(DesktopIconProbe.DesktopIconInfo);
+            var bestDistance = float.MaxValue;
+            var found = false;
+            foreach (var candidate in cachedIcons)
+            {
+                var dx = candidate.ScreenX + IconCellWidth * 0.5f - physX;
+                var dy = candidate.ScreenY + IconCellHeight * 0.5f - physY;
+                if (Math.Abs(dx) > IconCellWidth * 0.75f || Math.Abs(dy) > IconCellHeight * 0.75f)
+                {
+                    continue;
+                }
+
+                var distance = dx * dx + dy * dy;
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    best = candidate;
+                    found = true;
+                }
+            }
+
+            icon = best;
+            return found;
+        }
+
+        private void UpdatePendingSingleClick()
+        {
+            if (pendingSingleClickReal < 0 ||
+                Time.realtimeSinceStartupAsDouble - pendingSingleClickReal < SingleClickForwardDelay)
+            {
+                return;
+            }
+
+            pendingSingleClickReal = double.NegativeInfinity;
+            if (ritualActive)
+            {
+                return; // a double click took over this press
+            }
+
+            if (iconProbe.ForwardClick(pendingSingleClickClientX, pendingSingleClickClientY, false))
+            {
+                Debug.Log("[Companion] Glass forwarded single click (selection) to the desktop.");
+            }
+        }
+
+        private void PollGlassClicks()
+        {
+            var down = DesktopActivityProbe.IsKeyDown(VkLButton);
+            var wasDown = iconClickWasDown;
+            iconClickWasDown = down;
+            if (!down || wasDown ||
+                Time.realtimeSinceStartupAsDouble < replayGuardUntil ||
+                !DesktopIconProbe.TryGetCursorPos(out var x, out var y) ||
+                !glassPhysical.Contains(new Vector2Int(x, y)))
+            {
+                return;
+            }
+
+            var now = Time.realtimeSinceStartupAsDouble;
+            var isSecondClick = now - lastGlassClickReal <= IconDoubleClickWindow &&
+                                Math.Abs(x - lastGlassClickX) <= IconDoubleClickMaxPixels &&
+                                Math.Abs(y - lastGlassClickY) <= IconDoubleClickMaxPixels;
+            if (isSecondClick && TryGetCachedIconAt(x, y, out var icon))
+            {
+                lastGlassClickReal = double.NegativeInfinity;
+                pendingSingleClickReal = double.NegativeInfinity; // the double click owns this press
+                StartIconRitual(icon, x, y);
+                return;
+            }
+
+            lastGlassClickReal = now;
+            lastGlassClickX = x;
+            lastGlassClickY = y;
+            if (!ritualActive && !motion.IsFlying)
+            {
+                // Hold the press briefly: if a second click arrives it becomes
+                // the ritual; otherwise forward it so selection still works.
+                pendingSingleClickReal = now;
+                if (TryGetCachedIconAt(x, y, out var singleIcon))
+                {
+                    pendingSingleClickClientX = singleIcon.ClientX;
+                    pendingSingleClickClientY = singleIcon.ClientY;
+                }
+            }
+        }
+
+        private void StartIconRitual(DesktopIconProbe.DesktopIconInfo icon, int physX, int physY)
+        {
+            ritualIcon = icon;
+            ritualActive = true;
+            ritualStartReal = Time.realtimeSinceStartupAsDouble;
+            preLaunchProcessIds = DesktopIconProbe.SnapshotProcessIds();
+            EnqueueSay("icon_flight");
+
+            var unityX = Mathf.Clamp(physX, 10, Screen.width - 10);
+            var unityY = Mathf.Clamp(Screen.height - physY, 10, Screen.height - 10);
+            var targetOffset = ScreenPointToAvatarOffset(new Vector2(unityX, unityY));
+            var avatarPixels = TryGetAvatarPixelHeight(out var pixelHeight) ? pixelHeight : 260f;
+            var targetPixels = 0.75f * settings.desktopIconPixelSize;
+            var scale = Mathf.Clamp(targetPixels / Mathf.Max(1f, avatarPixels), 0.06f, 0.85f);
+            motion.BeginScriptedFlight(targetOffset, IconFlightSeconds, scale);
+            var diaryLabel = string.IsNullOrEmpty(icon.Label)
+                ? "Bay den mot icon tren desktop de mo giup anh."
+                : icon.Label;
+            profile.AddDiary(DateTime.Now, "Bay den icon \"" + diaryLabel + "\" de mo giup anh.");
+            SaveProfileSoon();
+            Debug.Log("[Companion] Icon ritual started for '" + icon.Label + "' -> dock (" +
+                      unityX + "," + unityY + "), scale=" + scale.ToString("F2") + ".");
+        }
+
+        private void FinishIconRitual()
+        {
+            ritualActive = false;
+            if (motion != null && motion.IsFlying)
+            {
+                motion.EndScriptedFlight();
+            }
+
+            // Hand the double click back to Windows — this is the moment the
+            // app actually launches. Launch verification then runs frame-by-
+            // frame (no blocking) and falls back to real input if needed.
+            var forwardOk = iconProbe.ForwardClick(ritualIcon.ClientX, ritualIcon.ClientY, true);
+            Debug.Log("[Companion] Ritual finished - double click forwarded to the desktop (" + forwardOk + ").");
+            ritualVerifyActive = true;
+            ritualVerifyStartReal = Time.realtimeSinceStartupAsDouble;
+        }
+
+        private void VerifyIconLaunch()
+        {
+            if (Time.realtimeSinceStartupAsDouble - ritualVerifyStartReal < 1.4)
+            {
+                return;
+            }
+
+            ritualVerifyActive = false;
+            var icon = ritualIcon;
+            ritualIcon = default;
+            var launched = false;
+            if (preLaunchProcessIds != null)
+            {
+                foreach (var id in DesktopIconProbe.SnapshotProcessIds())
+                {
+                    if (!preLaunchProcessIds.Contains(id))
+                    {
+                        launched = true;
+                        break;
+                    }
+                }
+            }
+            preLaunchProcessIds = null;
+            if (!launched)
+            {
+                Debug.Log("[Companion] No new process after forward - using real-input fallback.");
+                replayGuardUntil = Time.realtimeSinceStartupAsDouble + 0.6;
+                iconProbe.ReplayDoubleClickAt(icon.ScreenX + IconCellWidth / 2,
+                    icon.ScreenY + IconCellHeight / 2);
+            }
+        }
+
+        private static bool IsOverAvatar(int physX, int physY)
+        {
+            var camera = Camera.main;
+            if (camera == null)
+            {
+                return false;
+            }
+
+            var avatar = GameObject.Find("HeroAvatarMotionRoot");
+            if (avatar == null)
+            {
+                return false;
+            }
+
+            var bounds = default(Bounds);
+            var found = false;
+            foreach (var renderer in avatar.GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer is ParticleSystemRenderer || !renderer.enabled ||
+                    !renderer.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+                if (!found)
+                {
+                    bounds = renderer.bounds;
+                    found = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(renderer.bounds);
+                }
+            }
+            if (!found)
+            {
+                return false;
+            }
+
+            var top = camera.WorldToScreenPoint(bounds.center + Vector3.up * bounds.extents.y);
+            var bottom = camera.WorldToScreenPoint(bounds.center - Vector3.up * bounds.extents.y);
+            var left = camera.WorldToScreenPoint(bounds.center - Vector3.right * bounds.extents.x);
+            var right = camera.WorldToScreenPoint(bounds.center + Vector3.right * bounds.extents.x);
+            var unityY = Screen.height - physY;
+            return physX >= Mathf.Min(left.x, right.x) - 24 && physX <= Mathf.Max(left.x, right.x) + 24 &&
+                   unityY >= Mathf.Min(top.y, bottom.y) - 24 && unityY <= Mathf.Max(top.y, bottom.y) + 24;
+        }
+
+        private static Vector3 ScreenPointToAvatarOffset(Vector2 screenPoint)
+        {
+            var camera = Camera.main;
+            var avatar = GameObject.Find("HeroAvatarMotionRoot");
+            if (camera == null || avatar == null)
+            {
+                return Vector3.zero;
+            }
+
+            var depth = camera.WorldToScreenPoint(avatar.transform.position).z;
+            if (depth <= 0f)
+            {
+                return Vector3.zero;
+            }
+
+            var world = camera.ScreenToWorldPoint(new Vector3(screenPoint.x, screenPoint.y, depth));
+            var offset = world - avatar.transform.position;
+            offset.z = Mathf.Clamp(offset.z, -1.2f, 1.2f);
+            return offset;
+        }
+
+        private static bool TryGetAvatarPixelHeight(out float pixels)
+        {
+            pixels = 0f;
+            var camera = Camera.main;
+            var avatar = GameObject.Find("HeroAvatarMotionRoot");
+            if (camera == null || avatar == null)
+            {
+                return false;
+            }
+
+            var bounds = default(Bounds);
+            var found = false;
+            foreach (var renderer in avatar.GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer is ParticleSystemRenderer || !renderer.enabled ||
+                    !renderer.gameObject.activeInHierarchy)
+                {
+                    continue;
+                }
+                if (!found)
+                {
+                    bounds = renderer.bounds;
+                    found = true;
+                }
+                else
+                {
+                    bounds.Encapsulate(renderer.bounds);
+                }
+            }
+            if (!found)
+            {
+                return false;
+            }
+
+            var top = camera.WorldToScreenPoint(bounds.center + Vector3.up * bounds.extents.y);
+            var bottom = camera.WorldToScreenPoint(bounds.center - Vector3.up * bounds.extents.y);
+            if (top.z <= 0f || bottom.z <= 0f)
+            {
+                return false;
+            }
+
+            pixels = Mathf.Abs(top.y - bottom.y);
+            return pixels > 1f;
         }
 
         private void PollClickSpam()
@@ -998,6 +1472,11 @@ namespace AnimeAssistant.Presentation
                 return;
             }
 
+            // Never leave the user's desktop in the other world after quitting.
+            if (wallpaperSwapped)
+            {
+                DesktopWallpaperWorld.RestoreOriginal();
+            }
             SaveProfileNow();
         }
     }
