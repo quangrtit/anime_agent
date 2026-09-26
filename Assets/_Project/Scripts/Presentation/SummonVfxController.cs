@@ -19,6 +19,15 @@ namespace AnimeAssistant.Presentation
         private SummonState previousState = SummonState.DoorClosed;
         private float emissionAccumulator;
 
+        /// <summary>Small portal spark burst used as the on-beat visual for dancing.</summary>
+        public void PortalBeatBurst()
+        {
+            if (portalParticles != null)
+            {
+                portalParticles.Emit(14);
+            }
+        }
+
         public void PlayAvatarClickFireworks()
         {
             if (celebrationParticles == null)
@@ -28,6 +37,80 @@ namespace AnimeAssistant.Presentation
 
             celebrationParticles.Emit(95);
             Invoke(nameof(PlayAvatarClickFireworksEcho), 0.16f);
+        }
+
+        private ParticleSystem ambientPetals;
+
+        /// <summary>
+        /// Seasonal ambient particles (cherry blossom, tanabata, new year)
+        /// falling across the whole view while the avatar is active.
+        /// </summary>
+        public void EnsureAmbientPetals(Color colorA, Color colorB)
+        {
+            if (particleMaterial == null)
+            {
+                return;
+            }
+
+            if (ambientPetals == null)
+            {
+                var camera = Camera.main;
+                if (camera == null)
+                {
+                    return;
+                }
+
+                ambientPetals = CreateSystem("Seasonal Ambient Petals", camera.transform);
+                ambientPetals.transform.localPosition = new Vector3(0f, 5.5f, 7.5f);
+                var main = ambientPetals.main;
+                main.startLifetime = new ParticleSystem.MinMaxCurve(4.5f, 7f);
+                main.startSpeed = new ParticleSystem.MinMaxCurve(0.25f, 0.6f);
+                main.startSize = new ParticleSystem.MinMaxCurve(0.045f, 0.13f);
+                main.startColor = new ParticleSystem.MinMaxGradient(colorA, colorB);
+                main.simulationSpace = ParticleSystemSimulationSpace.World;
+                main.maxParticles = 220;
+                main.gravityModifier = 0.04f;
+
+                var shape = ambientPetals.shape;
+                shape.enabled = true;
+                shape.shapeType = ParticleSystemShapeType.Box;
+                shape.scale = new Vector3(14f, 0.4f, 9f);
+
+                var velocity = ambientPetals.velocityOverLifetime;
+                velocity.enabled = true;
+                velocity.y = new ParticleSystem.MinMaxCurve(-0.55f, -0.3f);
+                velocity.x = new ParticleSystem.MinMaxCurve(-0.12f, 0.12f);
+
+                var rotation = ambientPetals.rotationOverLifetime;
+                rotation.enabled = true;
+                rotation.z = new ParticleSystem.MinMaxCurve(-1.6f, 1.6f);
+
+                var color = ambientPetals.colorOverLifetime;
+                color.enabled = true;
+                color.color = FadeGradient();
+
+                var emission = ambientPetals.emission;
+                emission.enabled = true;
+                emission.rateOverTime = new ParticleSystem.MinMaxCurve(7f);
+                ambientPetals.Play();
+            }
+            else
+            {
+                var main = ambientPetals.main;
+                main.startColor = new ParticleSystem.MinMaxGradient(colorA, colorB);
+                if (!ambientPetals.isPlaying)
+                {
+                    ambientPetals.Play();
+                }
+            }
+        }
+
+        public void ClearAmbientPetals()
+        {
+            if (ambientPetals != null && ambientPetals.isPlaying)
+            {
+                ambientPetals.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
         }
 
         private void PlayAvatarClickFireworksEcho()

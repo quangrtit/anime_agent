@@ -22,7 +22,13 @@ namespace AnimeAssistant.Presentation
         ShortHop
     }
 
-    /// <summary>
+    /// <summary>Short-lived face overrides driven by the companion director.</summary>
+    public enum CompanionMood
+    {
+        None,
+        Angry,
+        Sorrow
+    }    /// <summary>
     /// Model-independent motion and face layer for a Humanoid VRM avatar.
     /// Human-muscle animation keeps the pose portable across VRoid rigs while
     /// the model's own spring-bone components remain responsible for hair.
@@ -66,6 +72,13 @@ namespace AnimeAssistant.Presentation
         private float nextBehaviourDelay = 1.1f;
         private float clickReactionRemaining;
         private float lastClickReactionTime = float.NegativeInfinity;
+        private float lookAwayRemaining;
+        private float lookAwayYaw;
+        private CompanionMood moodKind = CompanionMood.None;
+        private float moodRemaining;
+        private bool danceActive;
+        private float danceBpm = 128f;
+        private double danceBeat;
         private uint randomState = 0x6D2B79F5u;
         private Vector3 roamingOffset;
         private Vector3 roamStartOffset;
@@ -89,6 +102,47 @@ namespace AnimeAssistant.Presentation
         public bool IsRoamRunning => currentBehaviour == AvatarIdleBehaviour.Wander && roamUsesRun;
         public bool IsClickReactionActive => clickReactionRemaining > 0f;
         public static int BehaviourTemplateCount => 7;
+
+        public bool IsDancing => danceActive;
+        public string CurrentDanceMoveName =>
+            FabricatedDanceMoves.Moves[FabricatedDanceMoves.MoveForBeat(danceBeat)].Name;
+
+        /// <summary>Starts the fabricated beat-synced dance (music-reactive or manual demo).</summary>
+        public void BeginBeatDance(float bpm)
+        {
+            if (currentBehaviour == AvatarIdleBehaviour.Wander && behaviourDuration > 0f)
+            {
+                roamingOffset = Vector3.Lerp(roamStartOffset, roamTargetOffset,
+                    Mathf.Clamp01(behaviourElapsed / behaviourDuration));
+            }
+            danceActive = true;
+            danceBpm = Mathf.Clamp(bpm, 70f, 190f);
+            danceBeat = 0.0;
+            behaviourElapsed = 0f;
+            behaviourDuration = 0f;
+            currentBehaviour = AvatarIdleBehaviour.Idle;
+        }
+
+        public void UpdateDanceBpm(float bpm)
+        {
+            if (danceActive)
+            {
+                danceBpm = Mathf.Clamp(bpm, 70f, 190f);
+            }
+        }
+
+        public void EndBeatDance()
+        {
+            if (!danceActive)
+            {
+                return;
+            }
+
+            danceActive = false;
+            currentBehaviour = AvatarIdleBehaviour.Idle;
+            behaviourElapsed = 0f;
+            nextBehaviourDelay = 1.0f;
+        }
 
         private void Start()
         {
@@ -144,6 +198,19 @@ namespace AnimeAssistant.Presentation
                 activeElapsed += Time.unscaledDeltaTime;
             }
 
+            if (lookAwayRemaining > 0f)
+            {
+                lookAwayRemaining -= Time.unscaledDeltaTime;
+            }
+            if (moodRemaining > 0f)
+            {
+                moodRemaining -= Time.unscaledDeltaTime;
+                if (moodRemaining <= 0f)
+                {
+                    moodKind = CompanionMood.None;
+                }
+            }
+
             UpdateBehaviourScheduler(state, Time.unscaledDeltaTime);
 
             var locomoting = state == SummonState.AvatarExiting ||
@@ -152,7 +219,14 @@ namespace AnimeAssistant.Presentation
             var celebrating = state == SummonState.AvatarActive && activeElapsed < 2.4f &&
                               !IsClickReactionActive;
             var phase = Time.unscaledTime * (locomoting ? 4.6f : 1.15f);
-            if (nativeGraph.IsValid())
+            var dancing = danceActive && state == SummonState.AvatarActive &&
+                          !IsClickReactionActive && activeElapsed >= 2.4f;
+            if (dancing)
+            {
+                danceBeat += Time.unscaledDeltaTime * danceBpm / 60.0;
+                ApplyDancePose();
+            }
+            else if (nativeGraph.IsValid())
             {
                 UpdateNativeAnimation(ResolveNativeClip(state, celebrating), Time.unscaledDeltaTime);
             }
@@ -211,6 +285,49 @@ namespace AnimeAssistant.Presentation
             behaviourDuration = clickReactionRemaining;
             roamUsesRun = false;
             return true;
+        }
+
+        /// <summary>
+        /// Director-driven behaviour override (sit during pomodoro, sleepy
+        /// stretch, pout look-around). Returns false when the avatar cannot
+        /// take the request right now.
+        /// </summary>
+        public bool TryRequestBehaviour(AvatarIdleBehaviour behaviour, float durationSeconds)
+        {
+            if (!InitializeIfNeeded() || summonController == null ||
+                summonController.State != SummonState.AvatarActive ||
+                durationSeconds <= 0f || behaviour == AvatarIdleBehaviour.Celebration ||
+                clickReactionRemaining > 0f)
+            {
+                return false;
+            }
+
+            if (currentBehaviour == AvatarIdleBehaviour.Wander && behaviourDuration > 0f)
+            {
+                roamingOffset = Vector3.Lerp(roamStartOffset, roamTargetOffset,
+                    Mathf.Clamp01(behaviourElapsed / behaviourDuration));
+            }
+
+            previousBehaviour = currentBehaviour;
+            currentBehaviour = behaviour;
+            behaviourElapsed = 0f;
+            behaviourDuration = durationSeconds;
+            roamUsesRun = false;
+            return true;
+        }
+
+        /// <summary>Turns her body away from the viewer for a moment (the jealous glance).</summary>
+        public void RequestLookAway(float seconds, float yawDegrees)
+        {
+            lookAwayRemaining = seconds;
+            lookAwayYaw = yawDegrees;
+        }
+
+        /// <summary>Applies a temporary face override through the VRM expression stack.</summary>
+        public void SetMood(CompanionMood mood, float seconds)
+        {
+            moodKind = mood;
+            moodRemaining = seconds;
         }
 
         private bool InitializeIfNeeded()
@@ -557,11 +674,32 @@ namespace AnimeAssistant.Presentation
             }
         }
 
+        /// <summary>
+        /// Beat-synced dance from the fabricated move table: bounce on the beat
+        /// fraction plus one choreographed muscle pattern every 8 beats.
+        /// </summary>
+        private void ApplyDancePose()
+        {
+            Array.Copy(neutralMuscles, pose.muscles, neutralMuscles.Length);
+            pose.bodyPosition = neutralBodyPosition;
+            SetMuscle("Left Shoulder Down-Up", -0.12f);
+            SetMuscle("Right Shoulder Down-Up", -0.12f);
+
+            var beatFraction = (float)(danceBeat % 1.0);
+            var bounce = (1f - beatFraction) * (1f - beatFraction);
+            pose.bodyPosition = neutralBodyPosition + Vector3.up * (bounce * 0.035f);
+
+            FabricatedDanceMoves.Moves[FabricatedDanceMoves.MoveForBeat(danceBeat)]
+                .Apply(SetMuscle, (float)danceBeat);
+            poseHandler.SetHumanPose(ref pose);
+        }
+
         private void UpdateBehaviourScheduler(SummonState state, float deltaSeconds)
         {
             if (state != SummonState.AvatarActive)
             {
                 clickReactionRemaining = 0f;
+                danceActive = false;
                 currentBehaviour = AvatarIdleBehaviour.Idle;
                 behaviourElapsed = 0f;
                 nextBehaviourDelay = 1.1f;
@@ -584,6 +722,19 @@ namespace AnimeAssistant.Presentation
                     behaviourElapsed = 0f;
                     nextBehaviourDelay = 1.2f;
                 }
+                return;
+            }
+
+            if (danceActive)
+            {
+                // The dance owns the body; freeze the idle scheduler in place.
+                if (currentBehaviour == AvatarIdleBehaviour.Wander && behaviourDuration > 0f)
+                {
+                    roamingOffset = Vector3.Lerp(roamStartOffset, roamTargetOffset,
+                        Mathf.Clamp01(behaviourElapsed / behaviourDuration));
+                }
+                currentBehaviour = AvatarIdleBehaviour.Idle;
+                behaviourElapsed = 0f;
                 return;
             }
 
@@ -747,6 +898,12 @@ namespace AnimeAssistant.Presentation
                 summonController.SetActiveMotionOffset(roamingOffset + Vector3.up * idleBob);
                 summonController.SetActiveMotionYaw(0f);
             }
+
+            if (lookAwayRemaining > 0f)
+            {
+                // The jealous turn-away wins over every locomotion yaw.
+                summonController.SetActiveMotionYaw(lookAwayYaw);
+            }
         }
 
         private float NextRandom01()
@@ -859,6 +1016,22 @@ namespace AnimeAssistant.Presentation
             if (vrmInstance != null)
             {
                 var expression = vrmInstance.Runtime.Expression;
+                if (moodRemaining > 0f)
+                {
+                    // A mood moment (jealousy / sorrow) mutes the smile.
+                    expression.SetWeight(ExpressionKey.Angry,
+                        moodKind == CompanionMood.Angry ? 0.85f : 0f);
+                    expression.SetWeight(ExpressionKey.Sad,
+                        moodKind == CompanionMood.Sorrow ? 0.8f : 0f);
+                    expression.SetWeight(ExpressionKey.Happy, 0.05f);
+                    expression.SetWeight(ExpressionKey.Relaxed, 0f);
+                    expression.SetWeight(ExpressionKey.Surprised, surprised);
+                    expression.SetWeight(ExpressionKey.Aa, laugh);
+                    return;
+                }
+
+                expression.SetWeight(ExpressionKey.Angry, 0f);
+                expression.SetWeight(ExpressionKey.Sad, 0f);
                 expression.SetWeight(ExpressionKey.Happy, happy);
                 expression.SetWeight(ExpressionKey.Relaxed, active && !celebrating ? 0.22f : 0f);
                 expression.SetWeight(ExpressionKey.Surprised, surprised);

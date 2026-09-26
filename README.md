@@ -81,6 +81,31 @@ Nhận dạng giọng nói chạy local bằng CPU (1 thread), không dùng VRAM
 `Tools/AgentHost/commands.vi.json`; nó không sinh hay chạy shell command tùy ý.
 Tùy chỉnh wake word, VAD và TTS trong `Tools/AgentHost/agent_settings.json`.
 
+## Tính năng người đồng hành
+
+Nhân vật nhớ "cuộc sống chung" với người dùng: kỷ niệm ngày cài app, đồng hồ
+sinh học (thức khuya cùng bạn bị tích nợ ngủ), cơn ghen khi bạn mở ảnh 2D khác,
+đếm cửa sổ để dòm, 4 tính cách deredere/tsundere/yandere/kuudere, cuốn nhật ký
+chỉ được xem khi cô ấy giận, Pomodoro có waifu canh, lời nhắc hằng ngày và lễ hội
+Nhật theo mùa (hanami, tanabata...). Bỏ app đủ lâu sẽ nhận được thư từ biệt.
+
+Ngoài ra: sau khung cửa là "thế giới bên kia" đổi theo mùa, cô ấy mang quà ra
+mỗi ngày (ngày đặc biệt có file PNG thật trong `Desktop\Airi\`), tỏ tình ở mốc
+100 ngày, tiếng gõ cửa bí ẩn lúc nửa đêm, và **nhảy theo nhạc đang phát trên
+máy** (WASAPI loopback, không micro) kèm badge live mini — demo được không cần
+nhạc bằng `Alt+N`.
+
+Điều khiển nhanh:
+
+- `Alt+P`: bắt đầu/dừng Pomodoro 25 phút (nhân vật ngồi canh, hoàn thành được
+  vỗ tay + pháo hoa).
+- `Alt+C`: đổi tính cách.
+- `Alt+D`: mở thử cuốn nhật ký.
+- `Alt+N`: bật/tắt nhảy meme thủ công (128 BPM fabricate).
+
+Chi tiết cấu hình (lời nhắc, công tắc từng tính năng) xem phần "Tính năng người
+đồng hành" trong `RuntimeContent/Config/how_use.md`.
+
 ## Voice credit
 
 Japanese character chatter: `VOICEVOX:猫使アル`.

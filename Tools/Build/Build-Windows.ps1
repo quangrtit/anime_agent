@@ -30,7 +30,6 @@ $logPath = Join-Path $logDirectory 'windows-build.log'
 
 $unityArguments = @(
     '-batchmode',
-    '-nographics',
     '-quit',
     '-projectPath', $repoRoot,
     '-executeMethod', 'AnimeAssistant.Editor.WindowsBuild.Build',
